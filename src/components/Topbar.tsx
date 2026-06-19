@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Bell, User, Globe, Moon, Sun, Menu } from 'lucide-react';
+import { Search, Bell, Moon, Sun, Menu, Globe } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface TopbarProps {
@@ -10,17 +10,20 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="h-20 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-40">
+    <header className="h-24 px-4 sm:px-10 flex items-center justify-between sticky top-0 z-40">
       <div className="flex items-center gap-4">
         <button
           onClick={onMenuClick}
-          className="p-2 lg:hidden rounded-xl glass-card glass-card-light dark:glass-card-dark text-text-primary-light dark:text-text-primary-dark"
+          className="p-2 lg:hidden rounded-xl glass-capsule text-text-primary-light dark:text-text-primary-dark"
         >
           <Menu size={24} />
         </button>
-        <h1 className="text-xl sm:text-2xl font-semibold text-text-primary-light dark:text-text-primary-dark truncate">
-          La Table d'Or
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
+            Lumina Eat 👋
+          </h1>
+          <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">Bienvenue dans votre Workspace</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-6">
@@ -29,30 +32,32 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
           <input
             type="text"
             placeholder="Rechercher..."
-            className="glass-card glass-card-light dark:glass-card-dark rounded-2xl py-2 pl-10 pr-4 w-64 focus:outline-none focus:ring-2 focus:ring-accent-light dark:focus:ring-accent-dark transition-all"
+            className="glass-capsule rounded-full py-2 pl-10 pr-4 w-64 focus:outline-none focus:ring-1 focus:ring-accent-light dark:focus:ring-accent-dark text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark"
           />
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Language Selector */}
+          <button className="p-2 rounded-xl glass-capsule text-text-primary-light dark:text-text-primary-dark hover:scale-105 transition-transform flex items-center gap-2">
+            <Globe size={20} />
+            <span className="text-xs font-bold hidden lg:block uppercase tracking-widest">FR</span>
+          </button>
+
           <button
             onClick={toggleTheme}
-            className="p-3 rounded-2xl glass-card glass-card-light dark:glass-card-dark text-text-primary-light dark:text-text-primary-dark hover:scale-105 transition-transform"
+            className="p-2 rounded-xl glass-capsule text-text-primary-light dark:text-text-primary-dark hover:scale-105 transition-transform"
           >
             {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
           </button>
 
-          <button className="p-3 rounded-2xl glass-card glass-card-light dark:glass-card-dark text-text-primary-light dark:text-text-primary-dark hover:scale-105 transition-transform relative">
+          <button className="p-2 rounded-xl glass-capsule text-text-primary-light dark:text-text-primary-dark hover:scale-105 transition-transform relative">
             <Bell size={20} />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-danger-light dark:bg-danger-dark rounded-full"></span>
+            <span className="absolute top-2 right-2 w-2 h-2 bg-danger-light dark:bg-danger-dark rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"></span>
           </button>
 
-          <button className="p-3 rounded-2xl glass-card glass-card-light dark:glass-card-dark text-text-primary-light dark:text-text-primary-dark hover:scale-105 transition-transform">
-            <Globe size={20} />
-          </button>
-
-          <div className="flex items-center gap-3 ml-2 p-1 pr-4 rounded-2xl glass-card glass-card-light dark:glass-card-dark cursor-pointer hover:bg-white/5 transition-colors">
-            <div className="w-10 h-10 rounded-xl bg-accent-light/20 flex items-center justify-center overflow-hidden">
-              <User className="text-accent-light dark:text-accent-dark" size={24} />
+          <div className="flex items-center gap-3 ml-2 p-1 pr-4 rounded-full glass-capsule cursor-pointer">
+            <div className="w-10 h-10 rounded-full border border-black/10 dark:border-white/20 overflow-hidden">
+              <img src="https://ui-avatars.com/api/?name=Admin&background=3B82F6&color=fff" alt="Avatar" />
             </div>
             <div className="hidden sm:block">
               <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark">Admin</p>
