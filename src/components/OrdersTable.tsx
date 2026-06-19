@@ -23,36 +23,36 @@ const statusStyles: Record<Status, string> = {
   'En attente': 'bg-warning-light/10 text-warning-light dark:bg-warning-dark/10 dark:text-warning-dark',
   'En préparation': 'bg-accent-light/10 text-accent-light dark:bg-accent-dark/10 dark:text-accent-dark',
   'Servie': 'bg-success-light/10 text-success-light dark:bg-success-dark/10 dark:text-success-dark',
-  'Terminée': 'bg-slate-500/10 text-slate-500 dark:bg-slate-400/10 dark:text-slate-400',
+  'Terminée': 'bg-slate-500/10 text-slate-500 dark:bg-slate-400/20 dark:text-slate-400',
   'Annulée': 'bg-danger-light/10 text-danger-light dark:bg-danger-dark/10 dark:text-danger-dark',
 };
 
 export const OrdersTable: React.FC = () => {
   return (
-    <div className="glass-card glass-card-light dark:glass-card-dark rounded-[2rem] overflow-hidden">
+    <div className="glass-card-premium overflow-hidden">
       <div className="p-6 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark">Commandes récentes</h3>
-        <button className="text-sm font-medium text-accent-light dark:text-accent-dark hover:underline">Voir tout</button>
+        <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark tracking-wide">Dernières Commandes</h3>
+        <button className="text-sm font-medium text-accent-light dark:text-accent-dark hover:underline transition-colors">Voir tout</button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-white/10">
-              <th className="px-6 py-4 text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">ID</th>
-              <th className="px-6 py-4 text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Client</th>
-              <th className="px-6 py-4 text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Montant</th>
-              <th className="px-6 py-4 text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Statut</th>
-              <th className="px-6 py-4 text-sm font-medium text-text-secondary-light dark:text-text-secondary-dark">Heure</th>
+            <tr className="border-b border-black/5 dark:border-white/5">
+              <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">ID</th>
+              <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">Client</th>
+              <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">Montant</th>
+              <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">Statut</th>
+              <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">Heure</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-black/5 dark:divide-white/5">
             {orders.map((order) => (
-              <tr key={order.id} className="hover:bg-white/5 transition-colors group">
+              <tr key={order.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
                 <td className="px-6 py-4 text-sm font-medium text-text-primary-light dark:text-text-primary-dark">{order.id}</td>
-                <td className="px-6 py-4 text-sm text-text-primary-light dark:text-text-primary-dark">{order.client}</td>
+                <td className="px-6 py-4 text-sm text-text-secondary-light dark:text-text-secondary-dark">{order.client}</td>
                 <td className="px-6 py-4 text-sm font-semibold text-text-primary-light dark:text-text-primary-dark">{order.amount}</td>
                 <td className="px-6 py-4">
-                  <span className={cn("px-3 py-1 rounded-full text-xs font-medium", statusStyles[order.status])}>
+                  <span className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter", statusStyles[order.status])}>
                     {order.status}
                   </span>
                 </td>

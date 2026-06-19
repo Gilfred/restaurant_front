@@ -11,20 +11,20 @@ const activities = [
 
 export const RecentActivity: React.FC = () => {
   return (
-    <div className="glass-card glass-card-light dark:glass-card-dark p-6 rounded-[2rem]">
-      <h3 className="text-lg font-semibold mb-6 text-text-primary-light dark:text-text-primary-dark">Activité récente</h3>
+    <div className="glass-card-premium p-6 h-full">
+      <h3 className="text-lg font-semibold mb-6 text-text-primary-light dark:text-text-primary-dark tracking-wide">Activité Récente</h3>
       <div className="space-y-6">
         {activities.map((activity, index) => (
           <div key={activity.id} className="flex gap-4 relative group">
             {index !== activities.length - 1 && (
-              <div className="absolute left-[22px] top-10 bottom-[-24px] w-0.5 bg-slate-200 dark:bg-slate-700"></div>
+              <div className="absolute left-[19px] top-10 bottom-[-24px] w-[1px] bg-black/5 dark:bg-white/10"></div>
             )}
-            <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center shrink-0 z-10", activity.bg)}>
-              <activity.icon className={activity.color} size={20} />
+            <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 z-10 glass-capsule shadow-sm", activity.bg)}>
+              <activity.icon className={activity.color} size={18} />
             </div>
             <div>
               <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark">{activity.title}</p>
-              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1">{activity.time}</p>
+              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-0.5 uppercase tracking-widest">{activity.time}</p>
             </div>
           </div>
         ))}

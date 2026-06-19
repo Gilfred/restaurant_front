@@ -22,8 +22,9 @@ const PIE_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
 
 export const SalesOverview: React.FC = () => {
   return (
-    <div className="glass-card glass-card-light dark:glass-card-dark p-6 rounded-[2rem] h-[400px]">
-      <h3 className="text-lg font-semibold mb-6 text-text-primary-light dark:text-text-primary-dark">Évolution des ventes</h3>
+    <div className="glass-card-premium p-6 h-[400px] relative overflow-hidden">
+       <div className="absolute top-0 right-0 w-32 h-32 bg-accent-light/5 dark:bg-accent-neon/5 blur-3xl rounded-full pointer-events-none"></div>
+      <h3 className="text-lg font-semibold mb-6 text-text-primary-light dark:text-text-primary-dark tracking-wide">Evolution des Ventes</h3>
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
@@ -33,16 +34,18 @@ export const SalesOverview: React.FC = () => {
                 <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.1)" />
-            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0, 0, 0, 0.05)" className="dark:stroke-white/5" />
+            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12 }} dy={10} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12 }} />
             <Tooltip
               contentStyle={{
-                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                border: 'none',
-                borderRadius: '12px',
-                color: '#fff'
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(0,0,0,0.1)',
+                borderRadius: '16px',
+                color: '#1E293B'
               }}
+              itemStyle={{ color: '#1E293B' }}
             />
             <Area type="monotone" dataKey="sales" stroke="#3B82F6" fillOpacity={1} fill="url(#colorSales)" strokeWidth={3} />
           </AreaChart>
@@ -54,8 +57,8 @@ export const SalesOverview: React.FC = () => {
 
 export const OrderDistribution: React.FC = () => {
   return (
-    <div className="glass-card glass-card-light dark:glass-card-dark p-6 rounded-[2rem] h-[400px]">
-      <h3 className="text-lg font-semibold mb-2 text-text-primary-light dark:text-text-primary-dark">Répartition des commandes</h3>
+    <div className="glass-card-premium p-6 h-[400px]">
+      <h3 className="text-lg font-semibold mb-2 text-text-primary-light dark:text-text-primary-dark tracking-wide">Répartition des Commandes</h3>
       <div className="h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -74,21 +77,22 @@ export const OrderDistribution: React.FC = () => {
             </Pie>
             <Tooltip
               contentStyle={{
-                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                border: 'none',
-                borderRadius: '12px',
-                color: '#fff'
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(0,0,0,0.1)',
+                borderRadius: '16px',
+                color: '#1E293B'
               }}
             />
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <div className="grid grid-cols-2 gap-4 mt-4">
+      <div className="space-y-3 mt-4">
         {pieData.map((item, index) => (
           <div key={item.name} className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[index] }}></div>
-            <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark truncate">{item.name}</span>
-            <span className="text-xs font-bold ml-auto">{item.value}%</span>
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PIE_COLORS[index] }}></div>
+            <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark truncate uppercase tracking-tighter">{item.name}</span>
+            <span className="text-xs font-bold ml-auto text-text-primary-light dark:text-text-primary-dark">{item.value}%</span>
           </div>
         ))}
       </div>
@@ -98,21 +102,22 @@ export const OrderDistribution: React.FC = () => {
 
 export const RevenueWeekly: React.FC = () => {
   return (
-    <div className="glass-card glass-card-light dark:glass-card-dark p-6 rounded-[2rem] h-[400px]">
-      <h3 className="text-lg font-semibold mb-6 text-text-primary-light dark:text-text-primary-dark">Revenus hebdomadaires</h3>
+    <div className="glass-card-premium p-6 h-[400px]">
+      <h3 className="text-lg font-semibold mb-6 text-text-primary-light dark:text-text-primary-dark tracking-wide">Revenus Hebdomadaires</h3>
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.1)" />
-            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} dy={10} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12 }} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0, 0, 0, 0.05)" className="dark:stroke-white/5" />
+            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12 }} dy={10} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12 }} />
             <Tooltip
-              cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+              cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
               contentStyle={{
-                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                border: 'none',
-                borderRadius: '12px',
-                color: '#fff'
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(0,0,0,0.1)',
+                borderRadius: '16px',
+                color: '#1E293B'
               }}
             />
             <Bar dataKey="revenue" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={30} />

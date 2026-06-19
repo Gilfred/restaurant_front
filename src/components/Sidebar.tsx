@@ -54,21 +54,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <aside
         className={cn(
-          "glass-card glass-card-light dark:glass-card-dark h-[calc(100vh-2rem)] m-4 rounded-3xl transition-all duration-300 flex flex-col fixed left-0 top-0 z-[70]",
+          "glass-card-premium h-[calc(100%-2rem)] m-4 transition-all duration-300 flex flex-col absolute lg:relative left-0 top-0 z-[70]",
           isCollapsed ? "w-20" : "w-64",
           "lg:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-[calc(100%+2rem)]"
+          isOpen ? "translate-x-0" : "-translate-x-[calc(100%+2rem)] lg:translate-x-0"
         )}
       >
       <div className="p-6 flex items-center justify-between">
         {!isCollapsed && (
-          <span className="text-xl font-bold bg-gradient-to-r from-accent-light to-blue-600 dark:from-accent-dark dark:to-blue-400 bg-clip-text text-transparent">
-            Lumina Eat
+          <span className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark tracking-widest uppercase">
+            La Table d'Or
           </span>
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-xl hover:bg-white/10 transition-colors"
+          className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-text-primary-light dark:text-text-primary-dark"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
@@ -79,22 +79,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             key={item.id}
             className={cn(
-              "w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200 group",
+              "w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 group relative overflow-hidden glass-capsule",
               activeId === item.id
-                ? "bg-accent-light/10 text-accent-light dark:bg-accent-dark/10 dark:text-accent-dark shadow-[0_0_15px_rgba(59,130,246,0.3)]"
-                : "text-text-secondary-light dark:text-text-secondary-dark hover:bg-white/5"
+                ? "bg-accent-light dark:bg-accent-dark text-white shadow-lg"
+                : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
             )}
           >
-            <item.icon size={22} className={cn(
-              "transition-transform duration-200 group-hover:scale-110",
-              activeId === item.id && "drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+            <item.icon size={20} className={cn(
+              "transition-transform duration-300 group-hover:scale-110",
+              activeId === item.id ? "text-white" : "group-hover:text-accent-light dark:group-hover:text-accent-dark"
             )} />
-            {!isCollapsed && <span className="font-medium">{item.label}</span>}
+            {!isCollapsed && <span className="font-medium text-sm">{item.label}</span>}
           </button>
         ))}
       </nav>
 
-      <div className="p-4 mt-auto">
+      <div className="p-4 mt-auto border-t border-black/5 dark:border-white/5">
         <button className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-danger-light dark:text-danger-dark hover:bg-danger-light/10 transition-all duration-200">
           <LogOut size={22} />
           {!isCollapsed && <span className="font-medium">Déconnexion</span>}

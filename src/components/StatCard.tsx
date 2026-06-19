@@ -40,22 +40,24 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, trend, icon: I
   const isPositive = trend >= 0;
 
   return (
-    <div className="glass-card glass-card-light dark:glass-card-dark p-6 rounded-[2rem] flex flex-col gap-4 group hover:scale-[1.02] transition-transform duration-300">
-      <div className="flex justify-between items-start">
-        <div className={cn("p-4 rounded-2xl", colors[color].bg)}>
-          <Icon className={colors[color].text} size={24} />
+    <div className="glass-card-premium p-6 flex flex-col gap-4 group hover:scale-[1.02] transition-transform duration-500 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 blur-2xl rounded-full pointer-events-none"></div>
+
+      <div className="flex justify-between items-start z-10">
+        <div className={cn("p-3 rounded-2xl glass-capsule", colors[color].bg)}>
+          <Icon className={colors[color].text} size={20} />
         </div>
         <div className={cn(
-          "flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-lg",
-          isPositive ? "text-success-light dark:text-success-dark bg-success-light/10" : "text-danger-light dark:text-danger-dark bg-danger-light/10"
+          "flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full glass-capsule",
+          isPositive ? "text-emerald-500 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"
         )}>
-          {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+          {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
           {Math.abs(trend)}%
         </div>
       </div>
 
-      <div>
-        <h3 className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">{title}</h3>
+      <div className="z-10">
+        <h3 className="text-text-secondary-light dark:text-text-secondary-dark text-xs font-bold tracking-wider uppercase">{title}</h3>
         <p className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mt-1">{value}</p>
       </div>
 
