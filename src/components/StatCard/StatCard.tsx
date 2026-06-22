@@ -1,17 +1,8 @@
 import React from 'react';
-import type { LucideIcon } from 'lucide-react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import { cn } from '../utils/cn';
+import { cn } from '../../utils/cn';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-
-interface StatCardProps {
-  title: string;
-  value: string;
-  trend: number;
-  icon: LucideIcon;
-  chartData: { value: number }[];
-  color: 'blue' | 'green' | 'orange' | 'red';
-}
+import type { StatCardProps } from './StatCard.types';
 
 const colors = {
   blue: {

@@ -1,15 +1,6 @@
 import React from 'react';
-import { cn } from '../utils/cn';
-
-type Status = 'En attente' | 'En préparation' | 'Servie' | 'Terminée' | 'Annulée';
-
-interface Order {
-  id: string;
-  client: string;
-  amount: string;
-  status: Status;
-  date: string;
-}
+import { cn } from '../../utils/cn';
+import type { Order, Status } from './OrdersTable.types';
 
 const orders: Order[] = [
   { id: '#8923', client: 'Jean Dupont', amount: '45.00 €', status: 'Terminée', date: '14:20' },

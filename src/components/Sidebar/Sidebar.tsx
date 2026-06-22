@@ -13,9 +13,10 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { cn } from '../utils/cn';
+import { cn } from '../../utils/cn';
+import type { SidebarProps, MenuItem } from './Sidebar.types';
 
-const menuItems = [
+const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
   { icon: ShoppingCart, label: 'Commandes', id: 'orders' },
   { icon: UtensilsCrossed, label: 'Tables', id: 'tables' },
@@ -26,14 +27,6 @@ const menuItems = [
   { icon: BarChart3, label: 'Rapports', id: 'reports' },
   { icon: Settings, label: 'Paramètres', id: 'settings' },
 ];
-
-interface SidebarProps {
-  activeId?: string;
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-  isCollapsed: boolean;
-  setIsCollapsed: (isCollapsed: boolean) => void;
-}
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeId = 'dashboard',

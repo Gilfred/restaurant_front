@@ -1,10 +1,7 @@
 import React from 'react';
 import { Search, Bell, Moon, Sun, Menu, Globe } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
-
-interface TopbarProps {
-  onMenuClick: () => void;
-}
+import { useTheme } from '../../contexts/ThemeContext';
+import type { TopbarProps } from './Topbar.types';
 
 export const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
   const { theme, toggleTheme } = useTheme();
