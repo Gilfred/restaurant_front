@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, LogIn, UtensilsCrossed } from 'lucide-react';
+import { Mail, Lock, LogIn, UtensilsCrossed, Compass } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Login: React.FC = () => {
@@ -85,7 +85,17 @@ export const Login: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-8 text-center">
+        <div className="mt-6 flex flex-col gap-4">
+          <Link
+            to="/explore"
+            className="w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-text-primary-light dark:text-text-primary-dark rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all"
+          >
+            <Compass className="w-5 h-5 text-accent-light" />
+            Voir les restaurants disponibles
+          </Link>
+        </div>
+
+        <div className="mt-8 text-center border-t border-white/10 pt-6">
           <p className="text-text-secondary-light dark:text-text-secondary-dark">
             Vous n'avez pas de compte ?{' '}
             <Link to="/register" className="text-accent-light font-semibold hover:underline">
