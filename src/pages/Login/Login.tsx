@@ -1,10 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, UtensilsCrossed, Compass } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { login } from "../../services/auth.service";
 
 export const Login: React.FC = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
 
@@ -19,6 +20,7 @@ export const Login: React.FC = () => {
       });
 
       console.log(response.data);
+      navigate('/dashboard');
 
     } catch (error) {
       console.error(error);

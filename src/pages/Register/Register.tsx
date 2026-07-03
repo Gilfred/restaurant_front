@@ -1,10 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, UserPlus, UtensilsCrossed } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { register } from "../../services/auth.service";
 
 export const Register: React.FC = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = React.useState({
     name: '',
     email: '',
@@ -36,6 +37,7 @@ export const Register: React.FC = () => {
       });
 
       console.log("Utilisateur créé");
+      navigate('/login');
 
     } catch (error) {
       console.error(error);
