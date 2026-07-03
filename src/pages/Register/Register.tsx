@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, UserPlus, UtensilsCrossed } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { register } from "../../services/auth.service";
 
 export const Register: React.FC = () => {
   const [formData, setFormData] = React.useState({
@@ -18,10 +19,27 @@ export const Register: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Registration attempt:', formData);
-    // Registration logic will be added here later
+
+    if (formData.password !== formData.confirmPassword) {
+      alert("Les mots de passe ne correspondent pas.");
+      return;
+    }
+
+    try {
+
+      await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      console.log("Utilisateur créé");
+
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

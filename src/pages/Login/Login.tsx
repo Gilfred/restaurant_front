@@ -2,15 +2,27 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, UtensilsCrossed, Compass } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { login } from "../../services/auth.service";
 
 export const Login: React.FC = () => {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login attempt:', { email, password });
-    // Authentication logic will be added here later
+
+    try {
+
+      const response = await login({
+        email,
+        password,
+      });
+
+      console.log(response.data);
+
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

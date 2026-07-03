@@ -2,16 +2,26 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Mail, ArrowLeft, Send, UtensilsCrossed, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { forgotPassword } from "../../services/auth.service";
 
 export const ForgotPassword: React.FC = () => {
   const [email, setEmail] = React.useState('');
   const [isSubmitted, setIsSubmitted] = React.useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Password reset request for:', email);
-    // Password reset logic will be added here later
-    setIsSubmitted(true);
+
+    try {
+
+      await forgotPassword({
+        email,
+      });
+
+      setIsSubmitted(true);
+
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
