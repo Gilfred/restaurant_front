@@ -14,6 +14,8 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { useNavigate } from 'react-router-dom';
+import { logout } from '../../services/auth.service';
 import type { SidebarProps, MenuItem } from './Sidebar.types';
 
 const menuItems: MenuItem[] = [
@@ -35,6 +37,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
   setIsCollapsed
 }) => {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed', error);
+      // Even if API logout fails, we might want to redirect the user
+      navigate('/login');
+    }
+  };
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -88,7 +103,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       <div className="p-4 mt-auto border-t border-black/5 dark:border-white/5">
-        <button className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-danger-light dark:text-danger-dark hover:bg-danger-light/10 transition-all duration-200">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-danger-light dark:text-danger-dark hover:bg-danger-light/10 transition-all duration-200"
+        >
           <LogOut size={22} />
           {!isCollapsed && <span className="font-medium">Déconnexion</span>}
         </button>
