@@ -9,6 +9,9 @@ export const Login: React.FC = () => {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
 
+  const handleGoogleLogin = () => {
+    window.location.href ="http://localhost:8000/auth/google/login";
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -98,6 +101,11 @@ export const Login: React.FC = () => {
             Se connecter
           </button>
         </form>
+        <button
+            type="button" onClick={handleGoogleLogin}>
+              
+            Continuer avec Google
+        </button>
 
         <div className="mt-6 flex flex-col gap-4">
           <Link
