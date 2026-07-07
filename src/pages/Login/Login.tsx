@@ -1,15 +1,27 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, UtensilsCrossed, Compass } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { login } from "../../services/auth.service";
+
 import { useAuth } from "../../contexts/AuthContext";
 
+
 export const Login: React.FC = () => {
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+
+  const location = useLocation();
+
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+
+  React.useEffect(() => {
+    if (!loading && user) {
+      const from = (location.state as any)?.from?.pathname || "/dashboard";
+      navigate(from, { replace: true });
+    }
+  }, [user, loading, navigate, location]);
 
   const handleGoogleLogin = () => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -23,8 +35,6 @@ export const Login: React.FC = () => {
         email,
         password,
       });
-
-      await refreshUser();
 
       navigate("/dashboard", {
         replace: true,

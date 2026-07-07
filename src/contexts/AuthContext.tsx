@@ -1,28 +1,35 @@
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { getCurrentUser, logout } from "../services/auth.service";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { User } from '../types/user';
-import { getCurrentUser, logout as logoutService } from '../services/auth.service';
-
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  picture?: string;
+}
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-
-  login: (user: User) => void;
-  logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
-
+  isAuthenticated: boolean;
+  refreshUser: () => Promise<void>;
+  logoutUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const checkAuth = async () => {
-
+  const refreshUser = async () => {
     try {
       const response = await getCurrentUser();
       setUser(response.data);
@@ -33,30 +40,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const login = (userData: User) => {
-    setUser(userData);
-  };
-
-  const logout = async () => {
+  const logoutUser = async () => {
     try {
-      await logoutService();
+      await logout();
     } catch (error) {
-      console.error('Logout error:', error);
-
+      console.error(error);
     } finally {
       setUser(null);
     }
   };
 
+  useEffect(() => {
+    refreshUser();
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, checkAuth }}>
-
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isAuthenticated: !!user,
+        refreshUser,
+        logoutUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -65,9 +72,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
 
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider");
   }
+
   return context;
 };
-

@@ -3,8 +3,10 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, User, UserPlus, UtensilsCrossed } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from "../../services/auth.service";
+import { useAuth } from '../../contexts/AuthContext';
 
 export const Register: React.FC = () => {
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = React.useState({
     name: '',
@@ -19,6 +21,12 @@ export const Register: React.FC = () => {
       [e.target.name]: e.target.value
     }));
   };
+
+  React.useEffect(() => {
+    if (!loading && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
