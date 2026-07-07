@@ -3,31 +3,31 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
 export default function AuthCallback() {
-    const { checkAuth, user } = useAuth();
+    const { checkAuth, user, loading } = useAuth();
     const navigate = useNavigate();
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const verifySession = async () => {
-            try {
-                console.log("Retour de Google, vérification de la session...");
-                await checkAuth();
-            } catch (err) {
-                console.error("Erreur lors de la vérification de la session:", err);
-                setError("La connexion a échoué. Veuillez réessayer.");
-                setTimeout(() => navigate("/login"), 3000);
-            }
+            console.log("Retour de Google, vérification de la session...");
+            await checkAuth();
         };
 
         verifySession();
-    }, [checkAuth, navigate]);
+    }, [checkAuth]);
 
     useEffect(() => {
-        if (user) {
-            console.log("Authentification réussie, redirection vers le dashboard");
-            navigate("/dashboard");
+        if (!loading) {
+            if (user) {
+                console.log("Authentification réussie, redirection vers le dashboard");
+                navigate("/dashboard", { replace: true });
+            } else {
+                console.error("Échec de la vérification de la session après retour Google");
+                setError("La connexion a échoué. Veuillez vérifier que vous êtes bien connecté sur le même domaine (localhost vs 127.0.0.1).");
+                setTimeout(() => navigate("/login"), 4000);
+            }
         }
-    }, [user, navigate]);
+    }, [user, loading, navigate]);
 
     if (error) {
         return (

@@ -17,6 +17,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   const checkAuth = async () => {
+    setLoading(true);
     try {
       const response = await getCurrentUser();
       setUser(response.data);
