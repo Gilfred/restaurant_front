@@ -33,8 +33,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const response = await getCurrentUser();
       setUser(response.data);
+      return response.data;
     } catch (error) {
       setUser(null);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -51,7 +53,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
-    refreshUser();
+    refreshUser().catch(() => {
+      // Ignorer l'erreur au chargement initial
+    });
   }, []);
 
   return (

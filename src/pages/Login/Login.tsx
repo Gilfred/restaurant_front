@@ -51,18 +51,26 @@ export const Login: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      // Étape 1: Authentification
       await login({
         email,
         password,
       });
 
-      await refreshUser();
-
-      navigate("/dashboard", {
-        replace: true,
-      });
+      // Étape 2: Synchronisation de la session (vérification du cookie)
+      try {
+        await refreshUser();
+        navigate("/dashboard", { replace: true });
+      } catch (syncErr: any) {
+        console.error("Erreur de synchronisation de session:", syncErr);
+        setError(
+          "Authentification réussie, mais la session n'a pas pu être établie. " +
+          "Cela est souvent dû à un mélange entre 'localhost' et '127.0.0.1' dans l'URL. " +
+          "Assurez-vous d'accéder au site via l'URL exacte définie dans votre configuration API."
+        );
+      }
     } catch (err: any) {
-      console.error(err);
+      console.error("Erreur de connexion:", err);
       setError(
         err.response?.data?.message ||
         "Échec de la connexion. Veuillez vérifier vos identifiants."
