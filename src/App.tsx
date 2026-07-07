@@ -4,7 +4,8 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { PublicMenu } from './pages/PublicMenu';
-import AuthCallback from './pages/auth/AuthCallback';
+import { AuthCallback } from './pages/auth/AuthCallback';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -15,7 +16,14 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/explore" element={<PublicMenu />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
         {/* Default route redirects to login for now */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         {/* Catch all route redirects to login */}
