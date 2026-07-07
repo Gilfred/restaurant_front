@@ -3,9 +3,11 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, UtensilsCrossed, Compass } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { login } from "../../services/auth.service";
+import { useAuth } from "../../contexts/AuthContext";
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
 
@@ -16,15 +18,16 @@ export const Login: React.FC = () => {
     e.preventDefault();
 
     try {
-
-      const response = await login({
+      await login({
         email,
         password,
       });
 
-      console.log(response.data);
-      navigate('/dashboard');
+      await refreshUser();
 
+      navigate("/dashboard", {
+        replace: true,
+      });
     } catch (error) {
       console.error(error);
     }
