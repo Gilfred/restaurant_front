@@ -7,21 +7,39 @@ import { login } from "../../services/auth.service";
 import { useAuth } from "../../contexts/AuthContext";
 
 
-export const Login: React.FC = () => {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
+interface LocationState {
+  message?: string;
+  from?: {
+    pathname: string;
+  };
+}
 
+export const Login: React.FC = () => {
+  const { user, loading, refreshUser } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
+  const state = location.state as LocationState;
 
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (state?.message) {
+      setSuccessMessage(state.message);
+      // Nettoyer l'état de navigation de manière idiomatique
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [state, navigate, location.pathname]);
 
   React.useEffect(() => {
     if (!loading && user) {
-      const from = (location.state as any)?.from?.pathname || "/dashboard";
+      const from = state?.from?.pathname || "/dashboard";
       navigate(from, { replace: true });
     }
-  }, [user, loading, navigate, location]);
+  }, [user, loading, navigate, state]);
 
   const handleGoogleLogin = () => {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -29,6 +47,8 @@ export const Login: React.FC = () => {
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
 
     try {
       await login({
@@ -36,11 +56,19 @@ export const Login: React.FC = () => {
         password,
       });
 
+      await refreshUser();
+
       navigate("/dashboard", {
         replace: true,
       });
-    } catch (error) {
-      console.error(error);
+    } catch (err: any) {
+      console.error(err);
+      setError(
+        err.response?.data?.message ||
+        "Échec de la connexion. Veuillez vérifier vos identifiants."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -63,6 +91,26 @@ export const Login: React.FC = () => {
           <h1 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark">Lumina Eat</h1>
           <p className="text-text-secondary-light dark:text-text-secondary-dark mt-2">Bienvenue sur votre espace de gestion</p>
         </div>
+
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm font-medium"
+          >
+            {error}
+          </motion.div>
+        )}
+
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-500 text-sm font-medium"
+          >
+            {successMessage}
+          </motion.div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
@@ -109,10 +157,17 @@ export const Login: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-4 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-accent-light/20 active:scale-[0.98]"
+            disabled={isSubmitting}
+            className="w-full py-4 bg-accent-light hover:bg-accent-dark disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-accent-light/20 active:scale-[0.98]"
           >
-            <LogIn className="w-5 h-5" />
-            Se connecter
+            {isSubmitting ? (
+              <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <LogIn className="w-5 h-5" />
+                Se connecter
+              </>
+            )}
           </button>
         </form>
         <button

@@ -14,6 +14,8 @@ export const Register: React.FC = () => {
     password: '',
     confirmPassword: ''
   });
+  const [error, setError] = React.useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -30,25 +32,34 @@ export const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Les mots de passe ne correspondent pas.");
+      setError("Les mots de passe ne correspondent pas.");
       return;
     }
 
-    try {
+    setIsSubmitting(true);
 
+    try {
       await register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
       });
 
-      console.log("Utilisateur créé");
-      navigate('/login');
+      navigate('/login', {
+        state: { message: "Compte créé avec succès ! Veuillez vous connecter." }
+      });
 
-    } catch (error) {
-      console.error(error);
+    } catch (err: any) {
+      console.error(err);
+      setError(
+        err.response?.data?.message ||
+        "Une erreur est survenue lors de l'inscription."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -71,6 +82,16 @@ export const Register: React.FC = () => {
           <h1 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark">Lumina Eat</h1>
           <p className="text-text-secondary-light dark:text-text-secondary-dark mt-2">Créer un nouveau compte</p>
         </div>
+
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm font-medium"
+          >
+            {error}
+          </motion.div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
@@ -147,10 +168,17 @@ export const Register: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full mt-4 py-4 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-accent-light/20 active:scale-[0.98]"
+            disabled={isSubmitting}
+            className="w-full mt-4 py-4 bg-accent-light hover:bg-accent-dark disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-accent-light/20 active:scale-[0.98]"
           >
-            <UserPlus className="w-5 h-5" />
-            S'inscrire
+            {isSubmitting ? (
+              <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <UserPlus className="w-5 h-5" />
+                S'inscrire
+              </>
+            )}
           </button>
         </form>
 
