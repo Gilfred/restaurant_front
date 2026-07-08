@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../../services/auth.service';
+import { useAuth } from '../../contexts/AuthContext';
 import type { SidebarProps, MenuItem } from './Sidebar.types';
 
 const menuItems: MenuItem[] = [
@@ -38,15 +38,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsCollapsed
 }) => {
   const navigate = useNavigate();
+  const { logoutUser } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await logout();
-      navigate('/login');
+      await logoutUser();
+      navigate('/login', { replace: true });
     } catch (error) {
       console.error('Logout failed', error);
-      // Even if API logout fails, we might want to redirect the user
-      navigate('/login');
+      navigate('/login', { replace: true });
     }
   };
 
