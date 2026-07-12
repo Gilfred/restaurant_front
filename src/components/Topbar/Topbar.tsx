@@ -9,7 +9,7 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
   const { user } = useAuth();
 
   const userName = user?.name || 'Utilisateur';
-  const userRole = 'Propriétaire'; // Or determine if roles exist in User structure
+  const userRole = 'a mettre a jour'; // Or determine if roles exist in User structure
   const avatarUrl = user?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=3B82F6&color=fff`;
 
   return (
