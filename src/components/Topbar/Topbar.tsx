@@ -1,10 +1,16 @@
 import React from 'react';
 import { Search, Bell, Moon, Sun, Menu, Globe } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import type { TopbarProps } from './Topbar.types';
 
 export const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
   const { theme, toggleTheme } = useTheme();
+  const { user } = useAuth();
+
+  const userName = user?.name || 'Utilisateur';
+  const userRole = 'Propriétaire'; // Or determine if roles exist in User structure
+  const avatarUrl = user?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=3B82F6&color=fff`;
 
   return (
     <header className="h-24 px-4 sm:px-10 flex items-center justify-between sticky top-0 z-40">
@@ -54,11 +60,11 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
 
           <div className="flex items-center gap-3 ml-2 p-1 pr-4 rounded-full glass-capsule cursor-pointer">
             <div className="w-10 h-10 rounded-full border border-black/10 dark:border-white/20 overflow-hidden">
-              <img src="https://ui-avatars.com/api/?name=Admin&background=3B82F6&color=fff" alt="Avatar" />
+              <img src={avatarUrl} alt={userName} />
             </div>
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark">Admin</p>
-              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark leading-none">Propriétaire</p>
+              <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark">{userName}</p>
+              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark leading-none">{userRole}</p>
             </div>
           </div>
         </div>
