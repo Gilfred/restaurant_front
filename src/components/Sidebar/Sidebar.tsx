@@ -19,7 +19,8 @@ import {
   EyeOff,
   History,
   UserPlus,
-  Inbox
+  Inbox,
+  Briefcase
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -50,7 +51,8 @@ const menuItems: MenuItem[] = [
     id: 'affiliation',
     children: [
       { id: 'affiliation-join', label: 'Rejoindre' },
-      { id: 'affiliation-requests', label: 'Demandes' }
+      { id: 'affiliation-requests', label: 'Demandes' },
+      { id: 'affiliation-my-restaurant', label: 'Mon Restaurant' }
     ]
   },
   { icon: Package, label: 'Stocks', id: 'inventory' },
@@ -122,6 +124,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <UserPlus size={16} />;
       case 'affiliation-requests':
         return <Inbox size={16} />;
+      case 'affiliation-my-restaurant':
+        return <Briefcase size={16} />;
       default:
         return null;
     }
@@ -206,7 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           className={cn(
                             "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200",
                             isChildActive
-                              ? "bg-accent-light/15 dark:bg-accent-dark/15 text-accent-light dark:text-accent-dark border border-accent-light/20"
+                              ? "bg-accent-light/15 dark:bg-accent-dark/15 text-white shadow-md shadow-accent-light/10"
                               : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-black/5 dark:hover:bg-white/5"
                           )}
                         >

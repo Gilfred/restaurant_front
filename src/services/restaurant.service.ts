@@ -7,6 +7,7 @@ import type {
   UserRolesUpdate,
   RestaurantUserJoinResponse,
   ApproveRequestPayload,
+  MeRestaurantResponse,
 } from "../types/restaurant";
 
 export const createRestaurant = (data: RestaurantCreate) => {
@@ -47,4 +48,8 @@ export const approveJoinRequest = (userId: string, data: ApproveRequestPayload) 
 
 export const rejectJoinRequest = (userId: string) => {
   return api.post<RestaurantUserJoinResponse>(`/restaurant-users/join-requests/${userId}/reject`);
+};
+
+export const getMeRestaurant = () => {
+  return api.get<MeRestaurantResponse>("/restaurant-users/me/restaurant");
 };

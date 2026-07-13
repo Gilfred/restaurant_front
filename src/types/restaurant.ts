@@ -68,3 +68,18 @@ export interface RestaurantUserJoinResponse {
 export interface ApproveRequestPayload {
   roleId: string;
 }
+
+export interface MeRestaurantResponse {
+  restaurant: RestaurantResponse;
+  role?: Role | null;
+  status: string;
+}
+export interface RestaurantUserJoinResponse {
+  id: string;
+  userId: string;
+  restaurantId: string;
+  roleId?: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}

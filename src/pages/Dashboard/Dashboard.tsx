@@ -19,6 +19,7 @@ import { InactiveView } from './Views/InactiveView';
 import { HistoryView } from './Views/HistoryView';
 import { JoinView } from './Views/JoinView';
 import { RequestsView } from './Views/RequestsView';
+import { MyRestaurantView } from './Views/MyRestaurantView';
 
 import type { Stat, BestSellingProduct } from './Dashboard.types';
 
@@ -195,6 +196,17 @@ export const Dashboard: React.FC = () => {
             className="p-4 sm:p-8"
           >
             <RequestsView />
+          </motion.div>
+        );
+
+      case 'affiliation-my-restaurant':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-8"
+          >
+            <MyRestaurantView />
           </motion.div>
         );
 
