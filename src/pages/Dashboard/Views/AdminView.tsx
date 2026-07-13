@@ -18,6 +18,7 @@ import type {
   RestaurantActivationHistoryResponse
 } from "../../../types/restaurant";
 import { AccessDenied } from "../../../components/AccessDenied";
+import { AdminSkeleton } from "../../../components/RestoSkeletons";
 
 export const AdminView: React.FC = () => {
   const [inactiveRestaurants, setInactiveRestaurants] = useState<RestaurantResponse[]>([]);
@@ -68,9 +69,12 @@ export const AdminView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-10 h-10 text-accent-light animate-spin mb-4" />
-        <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Initialisation du panel d'administration...</p>
+      <div className="space-y-10">
+        <div className="space-y-2 w-1/3">
+          <div className="h-8 bg-black/10 dark:bg-white/5 rounded-xl animate-pulse" />
+          <div className="h-4 bg-black/10 dark:bg-white/5 rounded-lg animate-pulse w-2/3" />
+        </div>
+        <AdminSkeleton />
       </div>
     );
   }

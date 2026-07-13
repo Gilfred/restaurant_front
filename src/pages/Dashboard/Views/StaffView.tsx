@@ -13,6 +13,7 @@ import {
 import { getRestaurantStaff, updateEmployeeRoles } from "../../../services/restaurant.service";
 import type { StaffResponse } from "../../../types/restaurant";
 import { AccessDenied } from "../../../components/AccessDenied";
+import { StaffSkeleton } from "../../../components/RestoSkeletons";
 
 export const StaffView: React.FC = () => {
   const [staff, setStaff] = useState<StaffResponse[]>([]);
@@ -74,9 +75,15 @@ export const StaffView: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh]">
-        <Loader2 className="w-10 h-10 text-accent-light animate-spin mb-4" />
-        <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Récupération des membres du personnel...</p>
+      <div className="space-y-8">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div className="space-y-2 w-1/3">
+            <div className="h-8 bg-black/10 dark:bg-white/5 rounded-xl animate-pulse" />
+            <div className="h-4 bg-black/10 dark:bg-white/5 rounded-lg animate-pulse w-2/3" />
+          </div>
+          <div className="h-12 w-60 bg-black/10 dark:bg-white/5 rounded-2xl animate-pulse" />
+        </div>
+        <StaffSkeleton />
       </div>
     );
   }
@@ -84,8 +91,8 @@ export const StaffView: React.FC = () => {
   if (isDenied) {
     return (
       <AccessDenied
-        requiredRole="PROPRIÉTAIRE"
-        description="L'accès à la gestion du personnel est strictement restreint au propriétaire de l'établissement."
+        requiredRole="PROPRIÉTAIRE (ADMIN)"
+        description="L'accès à la gestion du personnel est strictement restreint au propriétaire (ADMIN) de l'établissement."
       />
     );
   }

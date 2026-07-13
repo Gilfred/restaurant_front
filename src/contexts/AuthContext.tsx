@@ -6,11 +6,17 @@ import React, {
 } from "react";
 import { getCurrentUser, logout } from "../services/auth.service";
 
+export interface Role {
+  id: string;
+  name: string;
+}
+
 export interface User {
   id: number;
   name: string;
   email: string;
   picture?: string;
+  roles?: Role[];
 }
 
 interface AuthContextType {

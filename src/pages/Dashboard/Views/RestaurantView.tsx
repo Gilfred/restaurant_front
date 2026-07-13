@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { listRestaurants, createRestaurant } from "../../../services/restaurant.service";
 import type { RestaurantResponse, RestaurantCreate } from "../../../types/restaurant";
+import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
 
 export const RestaurantView: React.FC = () => {
   const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
@@ -137,10 +138,7 @@ export const RestaurantView: React.FC = () => {
 
       {/* Grid of restaurants */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center min-h-[40vh]">
-          <Loader2 className="w-10 h-10 text-accent-light animate-spin mb-4" />
-          <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm font-medium">Chargement des restaurants de prestige...</p>
-        </div>
+        <RestaurantSkeleton />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((restaurant) => (

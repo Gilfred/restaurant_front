@@ -52,8 +52,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onMenuItemClick
 }) => {
   const navigate = useNavigate();
-  const { logoutUser } = useAuth();
+  const { logoutUser, user } = useAuth();
   const [isRestoExpanded, setIsRestoExpanded] = useState(true);
+
+  // Check roles helper
+  const userRoles = (user?.roles || []).map(r => r.name.toUpperCase());
+  const isSuperAdmin = userRoles.includes("SUPERADMIN");
+  const isAdmin = userRoles.includes("ADMIN") || isSuperAdmin;
 
   const handleLogout = async () => {
     try {
@@ -133,6 +138,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const hasChildren = item.children && item.children.length > 0;
             const isSelected = activeId === item.id || (hasChildren && item.children?.some(c => c.id === activeId));
 
+            // If the group is "resto", filter child sub-menus based on the logged-in user roles
+            let visibleChildren = item.children;
+            if (item.id === 'resto' && item.children) {
+              visibleChildren = item.children.filter((child) => {
+                if (child.id === 'resto-admin') return isSuperAdmin;
+                if (child.id === 'resto-staff') return isAdmin;
+                return true; // Restaurants menu is visible to all
+              });
+
+              // If no children remain visible for this role, we can skip showing the "Resto" parent entirely if wanted,
+              // but standard is just showing what's allowed.
+              if (visibleChildren.length === 0) return null;
+            }
+
             return (
               <div key={item.id} className="space-y-1">
                 <button
@@ -165,7 +184,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {/* Sub-menu rendering */}
                 {hasChildren && isRestoExpanded && !isCollapsed && (
                   <div className="pl-6 space-y-1 mt-1 transition-all duration-300">
-                    {item.children?.map((child) => {
+                    {visibleChildren?.map((child) => {
                       const isChildActive = activeId === child.id;
                       return (
                         <button
