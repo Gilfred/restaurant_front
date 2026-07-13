@@ -142,7 +142,7 @@ export const StaffView: React.FC = () => {
             <div className="flex items-center gap-4 mb-4">
               <div className="w-14 h-14 rounded-2xl overflow-hidden bg-black/5 dark:bg-white/5 border border-white/10 flex-shrink-0">
                 <img
-                  src={member.picture || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"}
+                  src={member.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"}
                   alt={member.name}
                   className="w-full h-full object-cover"
                 />
@@ -165,6 +165,11 @@ export const StaffView: React.FC = () => {
                   <ShieldCheck size={12} />
                   {member.role?.name || "Membre standard"}
                 </span>
+                {member.role?.description && (
+                  <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark mt-1 italic">
+                    {member.role.description}
+                  </p>
+                )}
               </div>
 
               <button

@@ -1,45 +1,54 @@
 export interface RestaurantCreate {
   name: string;
-  cuisine: string;
-  description: string;
   address: string;
-  rating?: number;
-  image?: string;
+  phone: string;
 }
 
 export interface RestaurantResponse {
   id: string;
   name: string;
-  cuisine: string;
-  description: string;
   address: string;
-  rating: number;
-  image?: string;
+  phone: string;
   ownerId: string;
   isActive: boolean;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface Permission {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Role {
   id: string;
   name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  permissions: Permission[];
 }
 
 export interface StaffResponse {
   id: string;
   name: string;
   email: string;
-  picture?: string;
-  role?: Role | null;
+  image?: string;
+  isActive: boolean;
+  createdAt: string;
   status: string;
+  role?: Role | null;
 }
 
 export interface RestaurantActivationHistoryResponse {
   id: string;
   restaurantId: string;
-  restaurantName: string;
-  activatedAt: string;
-  activatedBy: string;
+  status: string;
+  requestedAt: string;
+  processedAt?: string;
 }
 
 export interface UserRolesUpdate {

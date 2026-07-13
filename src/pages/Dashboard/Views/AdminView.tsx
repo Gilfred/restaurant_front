@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   Building2,
   Calendar,
-  User,
   Power,
   Loader2
 } from "lucide-react";
@@ -131,7 +130,7 @@ export const AdminView: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark">{resto.name}</h4>
-                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium">{resto.cuisine} • {resto.address}</p>
+                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium">{resto.address} • {resto.phone}</p>
                   </div>
                 </div>
 
@@ -170,7 +169,7 @@ export const AdminView: React.FC = () => {
             </div>
             <div>
               <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">Historique de Déploiement</h3>
-              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium">Historique complet des activations d'établissements.</p>
+              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium">Historique complet des demandes d'activations d'établissements.</p>
             </div>
           </div>
 
@@ -183,22 +182,24 @@ export const AdminView: React.FC = () => {
                 <div className="flex justify-between items-start">
                   <h4 className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
                     <Building2 size={14} className="text-accent-light" />
-                    {log.restaurantName}
+                    ID Restaurant: {log.restaurantId}
                   </h4>
                   <span className="text-[10px] font-bold text-success-light uppercase tracking-wider bg-success-light/10 px-2 py-0.5 rounded-md">
-                    Activé
+                    Statut: {log.status}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-black/5 dark:border-white/5 text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium">
                   <div className="flex items-center gap-1.5">
                     <Calendar size={12} className="text-accent-light" />
-                    <span>{new Date(log.activatedAt).toLocaleDateString()}</span>
+                    <span>Demandé le: {new Date(log.requestedAt).toLocaleDateString()}</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <User size={12} className="text-accent-light" />
-                    <span className="line-clamp-1">Par: {log.activatedBy}</span>
-                  </div>
+                  {log.processedAt && (
+                    <div className="flex items-center gap-1.5">
+                      <Calendar size={12} className="text-accent-light" />
+                      <span>Traité le: {new Date(log.processedAt).toLocaleDateString()}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
