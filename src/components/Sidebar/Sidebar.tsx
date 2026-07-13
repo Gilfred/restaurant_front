@@ -15,7 +15,8 @@ import {
   Building2,
   Users2,
   ShieldCheck,
-  PlusCircle
+  PlusCircle,
+  EyeOff
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +35,7 @@ const menuItems: MenuItem[] = [
     id: 'resto',
     children: [
       { id: 'resto-restaurants', label: 'Restaurants' },
+      { id: 'resto-inactive', label: 'Inactifs' },
       { id: 'resto-staff', label: 'Personnel' },
       { id: 'resto-admin', label: 'Administration' },
     ]
@@ -87,6 +89,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     switch (id) {
       case 'resto-restaurants':
         return <PlusCircle size={16} />;
+      case 'resto-inactive':
+        return <EyeOff size={16} />;
       case 'resto-staff':
         return <Users2 size={16} />;
       case 'resto-admin':
@@ -133,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const hasChildren = item.children && item.children.length > 0;
             const isSelected = activeId === item.id || (hasChildren && item.children?.some(c => c.id === activeId));
 
-            // All menus are always visible to provide standard navigation, roles validation/protection is enforced at the page rendering stage.
+            // All menus are always visible to provide standard premium navigation, restrictions are checked at page rendering.
             const visibleChildren = item.children;
 
             return (

@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RestaurantView } from './Views/RestaurantView';
 import { StaffView } from './Views/StaffView';
 import { AdminView } from './Views/AdminView';
+import { InactiveView } from './Views/InactiveView';
 
 import type { Stat, BestSellingProduct } from './Dashboard.types';
 
@@ -125,6 +126,17 @@ export const Dashboard: React.FC = () => {
             className="p-4 sm:p-8"
           >
             <RestaurantView />
+          </motion.div>
+        );
+
+      case 'resto-inactive':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-8"
+          >
+            <InactiveView />
           </motion.div>
         );
 
