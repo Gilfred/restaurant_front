@@ -18,7 +18,8 @@ import {
   PlusCircle,
   EyeOff,
   History,
-  UserPlus
+  UserPlus,
+  Inbox
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -48,7 +49,8 @@ const menuItems: MenuItem[] = [
     label: 'Affiliation',
     id: 'affiliation',
     children: [
-      { id: 'affiliation-join', label: 'Rejoindre' }
+      { id: 'affiliation-join', label: 'Rejoindre' },
+      { id: 'affiliation-requests', label: 'Demandes' }
     ]
   },
   { icon: Package, label: 'Stocks', id: 'inventory' },
@@ -118,6 +120,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <ShieldCheck size={16} />;
       case 'affiliation-join':
         return <UserPlus size={16} />;
+      case 'affiliation-requests':
+        return <Inbox size={16} />;
       default:
         return null;
     }

@@ -64,3 +64,7 @@ export interface RestaurantUserJoinResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ApproveRequestPayload {
+  roleId: string;
+}
