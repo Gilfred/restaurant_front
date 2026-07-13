@@ -6,9 +6,10 @@ import {
   X,
   Loader2,
   Mail,
-  UserCheck
+  UserCheck,
+  UserX
 } from "lucide-react";
-import { getRestaurantStaff, approveJoinRequest } from "../../../services/restaurant.service";
+import { getRestaurantStaff, approveJoinRequest, rejectJoinRequest } from "../../../services/restaurant.service";
 import type { StaffResponse } from "../../../types/restaurant";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { StaffSkeleton } from "../../../components/RestoSkeletons";
@@ -18,6 +19,7 @@ export const RequestsView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isDenied, setIsDenied] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
 
   // Approval modal states
   const [selectedUser, setSelectedUser] = useState<StaffResponse | null>(null);
@@ -66,6 +68,21 @@ export const RequestsView: React.FC = () => {
     }
   };
 
+  const handleReject = async (id: string, name: string) => {
+    setSuccess(null);
+    setRejectingId(id);
+
+    try {
+      await rejectJoinRequest(id);
+      setSuccess(`La demande d'affiliation pour "${name}" a été rejetée avec succès.`);
+      fetchRequests();
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setRejectingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-8">
@@ -99,7 +116,7 @@ export const RequestsView: React.FC = () => {
             Demandes d'Affiliation
           </h2>
           <p className="text-text-secondary-light dark:text-text-secondary-dark mt-1">
-            Approuvez et attribuez des rôles aux collaborateurs souhaitant rejoindre votre établissement.
+            Gérez (approbation ou rejet) les collaborateurs souhaitant rejoindre votre établissement de prestige.
           </p>
         </div>
       </div>
@@ -137,8 +154,8 @@ export const RequestsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-auto space-y-4 pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
-              <div>
+            <div className="mt-auto space-y-4 pt-4 border-t border-black/5 dark:border-white/5 flex flex-col">
+              <div className="flex justify-between items-center">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary-light dark:text-text-secondary-dark block mb-1">
                   Statut Demande
                 </span>
@@ -147,13 +164,31 @@ export const RequestsView: React.FC = () => {
                 </span>
               </div>
 
-              <button
-                onClick={() => setSelectedUser(member)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent-light hover:bg-accent-dark text-white font-bold text-xs shadow-md transition-all hover:scale-105"
-              >
-                <UserCheck size={14} />
-                Approuver
-              </button>
+              <div className="flex gap-2.5">
+                <button
+                  onClick={() => handleReject(member.id, member.name)}
+                  disabled={rejectingId === member.id}
+                  className="flex-1 py-2 rounded-xl bg-danger-light/10 border border-danger-light/20 text-danger-light hover:bg-danger-light hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all hover:scale-102"
+                >
+                  {rejectingId === member.id ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <>
+                      <UserX size={14} />
+                      Rejeter
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setSelectedUser(member)}
+                  disabled={rejectingId === member.id}
+                  className="flex-1 py-2 rounded-xl bg-accent-light hover:bg-accent-dark text-white font-bold text-xs shadow-md flex items-center justify-center gap-2 transition-all hover:scale-102"
+                >
+                  <UserCheck size={14} />
+                  Approuver
+                </button>
+              </div>
             </div>
           </motion.div>
         ))}

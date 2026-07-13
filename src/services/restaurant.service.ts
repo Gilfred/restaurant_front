@@ -44,3 +44,7 @@ export const joinRestaurant = (restaurantId: string) => {
 export const approveJoinRequest = (userId: string, data: ApproveRequestPayload) => {
   return api.post<RestaurantUserJoinResponse>(`/restaurant-users/join-requests/${userId}/approve`, data);
 };
+
+export const rejectJoinRequest = (userId: string) => {
+  return api.post<RestaurantUserJoinResponse>(`/restaurant-users/join-requests/${userId}/reject`);
+};
