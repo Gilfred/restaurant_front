@@ -8,15 +8,18 @@ import {
   Briefcase,
   ShieldCheck,
   HelpCircle,
-  Clock
+  Clock,
+  LogOut,
+  Loader2
 } from "lucide-react";
-import { getMeRestaurant } from "../../../services/restaurant.service";
+import { getMeRestaurant, leaveRestaurant } from "../../../services/restaurant.service";
 import type { MeRestaurantResponse } from "../../../types/restaurant";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
 
 export const MyRestaurantView: React.FC = () => {
   const [data, setData] = useState<MeRestaurantResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [leaving, setLeaving] = useState(false);
 
   const fetchMeRestaurant = async () => {
     try {
@@ -34,6 +37,22 @@ export const MyRestaurantView: React.FC = () => {
   useEffect(() => {
     fetchMeRestaurant();
   }, []);
+
+  const handleLeave = async () => {
+    if (!window.confirm("Êtes-vous sûr de vouloir quitter cet établissement ? Cette action est irréversible.")) {
+      return;
+    }
+    setLeaving(true);
+    try {
+      await leaveRestaurant();
+      setData(null);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.detail || "Échec lors de la sortie de l'établissement.");
+    } finally {
+      setLeaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -96,56 +115,75 @@ export const MyRestaurantView: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Side: General Info Card */}
-        <div className="lg:col-span-2 glass-card-premium p-8 relative overflow-hidden">
+        <div className="lg:col-span-2 glass-card-premium p-8 relative overflow-hidden flex flex-col justify-between min-h-[300px]">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent-light/40 to-accent-neon/40" />
 
-          <div className="flex items-center gap-5 mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-accent-light/10 flex items-center justify-center text-accent-light flex-shrink-0">
-              <Building2 size={32} />
+          <div>
+            <div className="flex items-center gap-5 mb-8">
+              <div className="w-16 h-16 rounded-2xl bg-accent-light/10 flex items-center justify-center text-accent-light flex-shrink-0">
+                <Building2 size={32} />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">{restaurant.name}</h3>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full mt-2 text-xs font-bold uppercase tracking-wider ${
+                  status === "PENDING"
+                    ? "bg-warning-light/10 text-warning-light"
+                    : "bg-success-light/10 text-success-light"
+                }`}>
+                  <Clock size={12} />
+                  Affiliation: {status}
+                </span>
+              </div>
             </div>
-            <div>
-              <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">{restaurant.name}</h3>
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full mt-2 text-xs font-bold uppercase tracking-wider ${
-                status === "PENDING"
-                  ? "bg-warning-light/10 text-warning-light"
-                  : "bg-success-light/10 text-success-light"
-              }`}>
-                <Clock size={12} />
-                Affiliation: {status}
-              </span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-black/5 dark:border-white/5">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">
+                  Adresse Géographique
+                </span>
+                <div className="flex items-center gap-2 text-text-primary-light dark:text-text-primary-dark font-medium">
+                  <MapPin size={16} className="text-accent-light" />
+                  <span>{restaurant.address}</span>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">
+                  Contact Téléphonique
+                </span>
+                <div className="flex items-center gap-2 text-text-primary-light dark:text-text-primary-dark font-medium">
+                  <Phone size={16} className="text-accent-light" />
+                  <span>{restaurant.phone}</span>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">
+                  Date de Création
+                </span>
+                <div className="flex items-center gap-2 text-text-primary-light dark:text-text-primary-dark font-medium">
+                  <Calendar size={16} className="text-accent-light" />
+                  <span>{new Date(restaurant.createdAt).toLocaleDateString()}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-black/5 dark:border-white/5">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">
-                Adresse Géographique
-              </span>
-              <div className="flex items-center gap-2 text-text-primary-light dark:text-text-primary-dark font-medium">
-                <MapPin size={16} className="text-accent-light" />
-                <span>{restaurant.address}</span>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">
-                Contact Téléphonique
-              </span>
-              <div className="flex items-center gap-2 text-text-primary-light dark:text-text-primary-dark font-medium">
-                <Phone size={16} className="text-accent-light" />
-                <span>{restaurant.phone}</span>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">
-                Date de Création
-              </span>
-              <div className="flex items-center gap-2 text-text-primary-light dark:text-text-primary-dark font-medium">
-                <Calendar size={16} className="text-accent-light" />
-                <span>{new Date(restaurant.createdAt).toLocaleDateString()}</span>
-              </div>
-            </div>
+          <div className="pt-6 border-t border-black/5 dark:border-white/5 flex justify-end">
+            <button
+              onClick={handleLeave}
+              disabled={leaving}
+              className="px-5 py-2.5 bg-danger-light/10 border border-danger-light/20 hover:bg-danger-light hover:text-white text-danger-light font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-105"
+            >
+              {leaving ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <>
+                  <LogOut size={14} />
+                  Quitter l'établissement
+                </>
+              )}
+            </button>
           </div>
         </div>
 

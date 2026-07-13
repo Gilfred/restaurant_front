@@ -53,3 +53,7 @@ export const rejectJoinRequest = (userId: string) => {
 export const getMeRestaurant = () => {
   return api.get<MeRestaurantResponse>("/restaurant-users/me/restaurant");
 };
+
+export const leaveRestaurant = () => {
+  return api.post<string>("/restaurant-users/me/restaurant/leave");
+};
