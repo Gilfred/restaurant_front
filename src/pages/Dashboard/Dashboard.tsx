@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sidebar } from '../../components/Sidebar';
 import { Topbar } from '../../components/Topbar';
 import { StatCard } from '../../components/StatCard';
@@ -9,7 +9,13 @@ import { OrdersTable } from '../../components/OrdersTable';
 import { RecentActivity } from '../../components/RecentActivity';
 import { cn } from '../../utils/cn';
 import { DollarSign, ShoppingBag, Users, Utensils } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Premium Resto Sub-views
+import { RestaurantView } from './Views/RestaurantView';
+import { StaffView } from './Views/StaffView';
+import { AdminView } from './Views/AdminView';
+
 import type { Stat, BestSellingProduct } from './Dashboard.types';
 
 const stats: Stat[] = [
@@ -44,6 +50,114 @@ const item = {
 export const Dashboard: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
+  const [activeMenuId, setActiveMenuId] = useState<string>('dashboard');
+
+  const renderContent = () => {
+    switch (activeMenuId) {
+      case 'dashboard':
+        return (
+          <motion.div
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="p-4 sm:p-8 space-y-8"
+          >
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {stats.map((stat, i) => (
+                <motion.div key={i} variants={item}>
+                  <StatCard {...stat} chartData={stat.data} />
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <motion.div variants={item} className="lg:col-span-2">
+                <SalesOverview />
+              </motion.div>
+              <motion.div variants={item}>
+                <OrderDistribution />
+              </motion.div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <motion.div variants={item}>
+                <RevenueWeekly />
+              </motion.div>
+              <motion.div variants={item}>
+                <div className="glass-card-premium p-6 h-full flex flex-col">
+                  <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-6">Produits les plus vendus</h3>
+                  <div className="space-y-4 flex-1">
+                    {bestSellingProducts.map((product, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="font-medium text-text-primary-light dark:text-text-primary-dark">{product.name}</span>
+                          <span className="text-text-secondary-light dark:text-text-secondary-dark">{product.sales} ventes</span>
+                        </div>
+                        <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                          <div className={cn("h-full rounded-full", product.color)} style={{ width: `${product.progress}%` }}></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Table and Activity Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-8">
+              <motion.div variants={item} className="lg:col-span-2">
+                <OrdersTable />
+              </motion.div>
+              <motion.div variants={item}>
+                <RecentActivity />
+              </motion.div>
+            </div>
+          </motion.div>
+        );
+
+      case 'resto-restaurants':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-8"
+          >
+            <RestaurantView />
+          </motion.div>
+        );
+
+      case 'resto-staff':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-8"
+          >
+            <StaffView />
+          </motion.div>
+        );
+
+      case 'resto-admin':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-8"
+          >
+            <AdminView />
+          </motion.div>
+        );
+
+      default:
+        return (
+          <div className="p-8 text-center text-text-secondary-light dark:text-text-secondary-dark font-medium">
+            Section en cours de construction...
+          </div>
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-0 sm:p-4 lg:p-8 font-sans selection:bg-accent-neon/30">
@@ -54,6 +168,11 @@ export const Dashboard: React.FC = () => {
           setIsOpen={setIsSidebarOpen}
           isCollapsed={isSidebarCollapsed}
           setIsCollapsed={setIsSidebarCollapsed}
+          activeId={activeMenuId}
+          onMenuItemClick={(id) => {
+            setActiveMenuId(id);
+            setIsSidebarOpen(false); // Close drawer on mobile
+          }}
         />
 
         <main className={cn(
@@ -61,68 +180,10 @@ export const Dashboard: React.FC = () => {
         )}>
           <Topbar onMenuClick={() => setIsSidebarOpen(true)} />
 
-          <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="p-4 sm:p-8 space-y-8"
-          >
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map((stat, i) => (
-              <motion.div key={i} variants={item}>
-                <StatCard {...stat} chartData={stat.data} />
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <motion.div variants={item} className="lg:col-span-2">
-              <SalesOverview />
-            </motion.div>
-            <motion.div variants={item}>
-              <OrderDistribution />
-            </motion.div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <motion.div variants={item}>
-              <RevenueWeekly />
-            </motion.div>
-            <motion.div variants={item}>
-              {/* Product Ranking placeholder if not using another chart component */}
-              <div className="glass-card-premium p-6 h-full flex flex-col">
-                <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-6">Produits les plus vendus</h3>
-                <div className="space-y-4 flex-1">
-                  {bestSellingProducts.map((product, idx) => (
-                    <div key={idx} className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="font-medium text-text-primary-light dark:text-text-primary-dark">{product.name}</span>
-                        <span className="text-text-secondary-light dark:text-text-secondary-dark">{product.sales} ventes</span>
-                      </div>
-                      <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                        <div className={cn("h-full rounded-full", product.color)} style={{ width: `${product.progress}%` }}></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Table and Activity Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-8">
-            <motion.div variants={item} className="lg:col-span-2">
-              <OrdersTable />
-            </motion.div>
-            <motion.div variants={item}>
-              <RecentActivity />
-            </motion.div>
-          </div>
-        </motion.div>
-      </main>
-
+          <AnimatePresence mode="wait">
+            {renderContent()}
+          </AnimatePresence>
+        </main>
       </div>
 
       {/* Decorative Background Glows */}
@@ -130,4 +191,4 @@ export const Dashboard: React.FC = () => {
       <div className="fixed bottom-[10%] left-[10%] w-[300px] h-[300px] bg-purple-500/10 blur-[150px] rounded-full pointer-events-none -z-10"></div>
     </div>
   );
-}
+};

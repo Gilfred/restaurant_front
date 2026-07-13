@@ -4,6 +4,7 @@ export interface MenuItem {
   icon: LucideIcon;
   label: string;
   id: string;
+  children?: { id: string; label: string }[];
 }
 
 export interface SidebarProps {
@@ -12,4 +13,5 @@ export interface SidebarProps {
   setIsOpen: (isOpen: boolean) => void;
   isCollapsed: boolean;
   setIsCollapsed: (isCollapsed: boolean) => void;
+  onMenuItemClick?: (id: string) => void;
 }
