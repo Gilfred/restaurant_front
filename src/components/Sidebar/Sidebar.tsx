@@ -52,13 +52,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onMenuItemClick
 }) => {
   const navigate = useNavigate();
-  const { logoutUser, user } = useAuth();
+  const { logoutUser } = useAuth();
   const [isRestoExpanded, setIsRestoExpanded] = useState(true);
-
-  // Check roles helper
-  const userRoles = (user?.roles || []).map(r => r.name.toUpperCase());
-  const isSuperAdmin = userRoles.includes("SUPERADMIN");
-  const isAdmin = userRoles.includes("ADMIN") || isSuperAdmin;
 
   const handleLogout = async () => {
     try {
@@ -138,19 +133,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const hasChildren = item.children && item.children.length > 0;
             const isSelected = activeId === item.id || (hasChildren && item.children?.some(c => c.id === activeId));
 
-            // If the group is "resto", filter child sub-menus based on the logged-in user roles
-            let visibleChildren = item.children;
-            if (item.id === 'resto' && item.children) {
-              visibleChildren = item.children.filter((child) => {
-                if (child.id === 'resto-admin') return isSuperAdmin;
-                if (child.id === 'resto-staff') return isAdmin;
-                return true; // Restaurants menu is visible to all
-              });
-
-              // If no children remain visible for this role, we can skip showing the "Resto" parent entirely if wanted,
-              // but standard is just showing what's allowed.
-              if (visibleChildren.length === 0) return null;
-            }
+            // All menus are always visible to provide standard navigation, roles validation/protection is enforced at the page rendering stage.
+            const visibleChildren = item.children;
 
             return (
               <div key={item.id} className="space-y-1">
@@ -193,7 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           className={cn(
                             "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200",
                             isChildActive
-                              ? "bg-accent-light dark:bg-accent-dark text-white shadow-md shadow-accent-light/10"
+                              ? "bg-accent-light/15 dark:bg-accent-dark/15 text-accent-light dark:text-accent-dark border border-accent-light/20"
                               : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark hover:bg-black/5 dark:hover:bg-white/5"
                           )}
                         >
