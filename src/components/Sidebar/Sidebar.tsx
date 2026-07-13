@@ -16,7 +16,8 @@ import {
   Users2,
   ShieldCheck,
   PlusCircle,
-  EyeOff
+  EyeOff,
+  History
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -36,6 +37,7 @@ const menuItems: MenuItem[] = [
     children: [
       { id: 'resto-restaurants', label: 'Restaurants' },
       { id: 'resto-inactive', label: 'Inactifs' },
+      { id: 'resto-history', label: 'Historique d\'activation' },
       { id: 'resto-staff', label: 'Personnel' },
       { id: 'resto-admin', label: 'Administration' },
     ]
@@ -91,6 +93,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <PlusCircle size={16} />;
       case 'resto-inactive':
         return <EyeOff size={16} />;
+      case 'resto-history':
+        return <History size={16} />;
       case 'resto-staff':
         return <Users2 size={16} />;
       case 'resto-admin':
