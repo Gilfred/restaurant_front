@@ -6,9 +6,12 @@ import {
   MapPin,
   Phone,
   Calendar,
-  EyeOff
+  EyeOff,
+  Power,
+  Loader2,
+  CheckCircle2
 } from "lucide-react";
-import { listInactiveRestaurants } from "../../../services/restaurant.service";
+import { listInactiveRestaurants, activateRestaurant } from "../../../services/restaurant.service";
 import type { RestaurantResponse } from "../../../types/restaurant";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
@@ -18,6 +21,8 @@ export const InactiveView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isDenied, setIsDenied] = useState(false);
   const [search, setSearch] = useState("");
+  const [activatingId, setActivatingId] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const fetchInactive = async () => {
     try {
@@ -38,6 +43,22 @@ export const InactiveView: React.FC = () => {
   useEffect(() => {
     fetchInactive();
   }, []);
+
+  const handleActivate = async (id: string) => {
+    setSuccess(null);
+    setActivatingId(id);
+    try {
+      await activateRestaurant(id);
+      setSuccess("Établissement activé avec succès !");
+      // Refresh the list immediately
+      const res = await listInactiveRestaurants();
+      setRestaurants(res.data);
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setActivatingId(null);
+    }
+  };
 
   const filtered = restaurants.filter(r =>
     r.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -77,7 +98,7 @@ export const InactiveView: React.FC = () => {
             Restaurants Inactifs
           </h2>
           <p className="text-text-secondary-light dark:text-text-secondary-dark mt-1">
-            Consultez les établissements en attente de validation ou suspendus.
+            Consultez et activez les établissements en attente de validation.
           </p>
         </div>
 
@@ -92,6 +113,13 @@ export const InactiveView: React.FC = () => {
           />
         </div>
       </div>
+
+      {success && (
+        <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-500 text-sm font-medium flex items-center gap-2">
+          <CheckCircle2 size={18} />
+          {success}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((restaurant) => (
@@ -126,6 +154,23 @@ export const InactiveView: React.FC = () => {
                 <div className="flex items-center gap-2.5 text-xs text-text-secondary-light dark:text-text-secondary-dark font-semibold">
                   <Calendar className="w-3.5 h-3.5 text-accent-light" />
                   <span>Créé le: {new Date(restaurant.createdAt).toLocaleDateString()}</span>
+                </div>
+
+                <div className="pt-4 border-t border-black/5 dark:border-white/5 flex justify-end">
+                  <button
+                    onClick={() => handleActivate(restaurant.id)}
+                    disabled={activatingId === restaurant.id}
+                    className="px-4 py-2 bg-accent-light hover:bg-accent-dark disabled:opacity-50 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all hover:scale-105"
+                  >
+                    {activatingId === restaurant.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Power size={14} />
+                        Activer l'établissement
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
