@@ -17,6 +17,7 @@ import { StaffView } from './Views/StaffView';
 import { AdminView } from './Views/AdminView';
 import { InactiveView } from './Views/InactiveView';
 import { HistoryView } from './Views/HistoryView';
+import { JoinView } from './Views/JoinView';
 
 import type { Stat, BestSellingProduct } from './Dashboard.types';
 
@@ -171,6 +172,17 @@ export const Dashboard: React.FC = () => {
             className="p-4 sm:p-8"
           >
             <AdminView />
+          </motion.div>
+        );
+
+      case 'affiliation-join':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-8"
+          >
+            <JoinView />
           </motion.div>
         );
 

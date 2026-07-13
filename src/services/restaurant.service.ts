@@ -5,6 +5,7 @@ import type {
   StaffResponse,
   RestaurantActivationHistoryResponse,
   UserRolesUpdate,
+  RestaurantUserJoinResponse,
 } from "../types/restaurant";
 
 export const createRestaurant = (data: RestaurantCreate) => {
@@ -33,4 +34,8 @@ export const getRestaurantStaff = () => {
 
 export const updateEmployeeRoles = (employeeId: string, data: UserRolesUpdate) => {
   return api.put<StaffResponse>(`/restaurants/staff/${employeeId}/roles`, data);
+};
+
+export const joinRestaurant = (restaurantId: string) => {
+  return api.post<RestaurantUserJoinResponse>(`/restaurant-users/${restaurantId}/join`);
 };

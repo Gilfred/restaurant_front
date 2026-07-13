@@ -54,3 +54,13 @@ export interface RestaurantActivationHistoryResponse {
 export interface UserRolesUpdate {
   roleIds: string[];
 }
+
+export interface RestaurantUserJoinResponse {
+  id: string;
+  userId: string;
+  restaurantId: string;
+  roleId?: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}

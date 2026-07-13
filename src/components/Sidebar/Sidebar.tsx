@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   PlusCircle,
   EyeOff,
-  History
+  History,
+  UserPlus
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -42,6 +43,14 @@ const menuItems: MenuItem[] = [
       { id: 'resto-admin', label: 'Administration' },
     ]
   },
+  {
+    icon: UserPlus,
+    label: 'Affiliation',
+    id: 'affiliation',
+    children: [
+      { id: 'affiliation-join', label: 'Rejoindre' }
+    ]
+  },
   { icon: Package, label: 'Stocks', id: 'inventory' },
   { icon: BarChart3, label: 'Rapports', id: 'reports' },
   { icon: Settings, label: 'Paramètres', id: 'settings' },
@@ -58,6 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navigate = useNavigate();
   const { logoutUser } = useAuth();
   const [isRestoExpanded, setIsRestoExpanded] = useState(true);
+  const [isAffiliationExpanded, setIsAffiliationExpanded] = useState(true);
 
   const handleLogout = async () => {
     try {
@@ -76,6 +86,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         setIsRestoExpanded(true);
       } else {
         setIsRestoExpanded(!isRestoExpanded);
+      }
+    } else if (item.id === 'affiliation') {
+      if (isCollapsed) {
+        setIsCollapsed(false);
+        setIsAffiliationExpanded(true);
+      } else {
+        setIsAffiliationExpanded(!isAffiliationExpanded);
       }
     } else {
       onMenuItemClick?.(item.id);
@@ -99,6 +116,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <Users2 size={16} />;
       case 'resto-admin':
         return <ShieldCheck size={16} />;
+      case 'affiliation-join':
+        return <UserPlus size={16} />;
       default:
         return null;
     }
@@ -140,9 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {menuItems.map((item) => {
             const hasChildren = item.children && item.children.length > 0;
             const isSelected = activeId === item.id || (hasChildren && item.children?.some(c => c.id === activeId));
-
-            // All menus are always visible to provide standard premium navigation, restrictions are checked at page rendering.
-            const visibleChildren = item.children;
+            const isExpanded = item.id === 'resto' ? isRestoExpanded : isAffiliationExpanded;
 
             return (
               <div key={item.id} className="space-y-1">
@@ -167,16 +184,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       size={16}
                       className={cn(
                         "transition-transform duration-300 text-text-secondary-light dark:text-text-secondary-dark",
-                        isRestoExpanded ? "transform rotate-180" : ""
+                        isExpanded ? "transform rotate-180" : ""
                       )}
                     />
                   )}
                 </button>
 
                 {/* Sub-menu rendering */}
-                {hasChildren && isRestoExpanded && !isCollapsed && (
+                {hasChildren && isExpanded && !isCollapsed && (
                   <div className="pl-6 space-y-1 mt-1 transition-all duration-300">
-                    {visibleChildren?.map((child) => {
+                    {item.children?.map((child) => {
                       const isChildActive = activeId === child.id;
                       return (
                         <button
