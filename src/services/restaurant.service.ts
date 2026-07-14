@@ -57,3 +57,7 @@ export const getMeRestaurant = () => {
 export const leaveRestaurant = () => {
   return api.post<string>("/restaurant-users/me/restaurant/leave");
 };
+
+export const getEmployees = () => {
+  return api.get<StaffResponse[]>("/restaurant-users/employees");
+};
