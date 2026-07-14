@@ -8,6 +8,7 @@ import type {
   RestaurantUserJoinResponse,
   ApproveRequestPayload,
   MeRestaurantResponse,
+  Role,
 } from "../types/restaurant";
 
 export const createRestaurant = (data: RestaurantCreate) => {
@@ -64,4 +65,8 @@ export const getEmployees = () => {
 
 export const updateEmployeeRole = (userId: string, data: { roleId: string }) => {
   return api.patch<RestaurantUserJoinResponse>(`/restaurant-users/employees/${userId}/role`, data);
+};
+
+export const listRoles = () => {
+  return api.get<Role[]>("/roles/");
 };

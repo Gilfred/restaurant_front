@@ -10,13 +10,14 @@ import {
   Loader2,
   CheckCircle2
 } from "lucide-react";
-import { getEmployees, updateEmployeeRole } from "../../../services/restaurant.service";
-import type { StaffResponse } from "../../../types/restaurant";
+import { getEmployees, updateEmployeeRole, listRoles } from "../../../services/restaurant.service";
+import type { StaffResponse, Role } from "../../../types/restaurant";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { StaffSkeleton } from "../../../components/RestoSkeletons";
 
 export const EmployeesView: React.FC = () => {
   const [employees, setEmployees] = useState<StaffResponse[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDenied, setIsDenied] = useState(false);
   const [search, setSearch] = useState("");
@@ -27,12 +28,16 @@ export const EmployeesView: React.FC = () => {
   const [roleId, setRoleId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchEmployees = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       setIsDenied(false);
-      const res = await getEmployees();
-      setEmployees(res.data);
+      const [empRes, rolesRes] = await Promise.all([
+        getEmployees(),
+        listRoles()
+      ]);
+      setEmployees(empRes.data);
+      setRoles(rolesRes.data);
     } catch (err: any) {
       console.error(err);
       if (err.response?.status === 403 || err.response?.status === 401) {
@@ -44,7 +49,7 @@ export const EmployeesView: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchEmployees();
+    fetchData();
   }, []);
 
   const handleUpdateRole = async (e: React.FormEvent) => {
@@ -59,7 +64,7 @@ export const EmployeesView: React.FC = () => {
       setSuccess(`Le rôle d'accès pour "${selectedUser.name}" a été mis à jour avec succès !`);
       setSelectedUser(null);
       setRoleId("");
-      fetchEmployees();
+      fetchData();
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -228,18 +233,23 @@ export const EmployeesView: React.FC = () => {
               <form onSubmit={handleUpdateRole} className="space-y-5">
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider">
-                    UUID du Rôle d'Accès
+                    Sélectionner le Rôle d'Accès
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={roleId}
                     onChange={(e) => setRoleId(e.target.value)}
                     required
-                    placeholder="ex: role-uuid-1"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
-                  />
-                  <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
-                    Saisissez l'UUID du nouveau rôle à attribuer à cet employé. Cette action mettra à jour instantanément ses permissions.
+                    className="w-full px-4 py-3 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
+                  >
+                    <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">Choisir un rôle...</option>
+                    {roles.map(r => (
+                      <option key={r.id} value={r.id} className="dark:bg-slate-900 text-text-primary-light">
+                        {r.name} {r.description ? `(${r.description})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark leading-relaxed font-semibold">
+                    Sélectionnez le nouveau rôle à attribuer à cet employé. Cette action mettra à jour instantanément ses permissions.
                   </p>
                 </div>
 

@@ -10,13 +10,14 @@ import {
   CheckCircle2,
   Mail
 } from "lucide-react";
-import { getRestaurantStaff, updateEmployeeRoles } from "../../../services/restaurant.service";
-import type { StaffResponse } from "../../../types/restaurant";
+import { getRestaurantStaff, updateEmployeeRoles, listRoles } from "../../../services/restaurant.service";
+import type { StaffResponse, Role } from "../../../types/restaurant";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { StaffSkeleton } from "../../../components/RestoSkeletons";
 
 export const StaffView: React.FC = () => {
   const [staff, setStaff] = useState<StaffResponse[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [isDenied, setIsDenied] = useState(false);
@@ -27,12 +28,16 @@ export const StaffView: React.FC = () => {
   const [roleIds, setRoleIds] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchStaff = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       setIsDenied(false);
-      const res = await getRestaurantStaff();
-      setStaff(res.data);
+      const [staffRes, rolesRes] = await Promise.all([
+        getRestaurantStaff(),
+        listRoles()
+      ]);
+      setStaff(staffRes.data);
+      setRoles(rolesRes.data);
     } catch (err: any) {
       console.error(err);
       if (err.response?.status === 403 || err.response?.status === 401) {
@@ -44,7 +49,7 @@ export const StaffView: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchStaff();
+    fetchData();
   }, []);
 
   const handleUpdateRoles = async (e: React.FormEvent) => {
@@ -59,7 +64,7 @@ export const StaffView: React.FC = () => {
       await updateEmployeeRoles(selectedEmployee.id, { roleIds: ids });
       setSuccess("Rôles mis à jour avec succès !");
       setSelectedEmployee(null);
-      fetchStaff();
+      fetchData();
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -149,7 +154,7 @@ export const StaffView: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-lg text-text-primary-light dark:text-text-primary-dark">{member.name}</h3>
-                <div className="flex items-center gap-1.5 text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                <div className="flex items-center gap-1.5 text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium">
                   <Mail size={12} />
                   <span>{member.email}</span>
                 </div>
@@ -161,12 +166,12 @@ export const StaffView: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary-light dark:text-text-secondary-dark block mb-1">
                   Rôle d'Accès
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-light/10 text-accent-light font-bold text-xs uppercase tracking-wider">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-light/10 text-accent-light font-bold text-xs uppercase tracking-wider font-semibold">
                   <ShieldCheck size={12} />
                   {member.role?.name || "Membre standard"}
                 </span>
                 {member.role?.description && (
-                  <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark mt-1 italic">
+                  <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark mt-1 italic font-medium leading-relaxed">
                     {member.role.description}
                   </p>
                 )}
@@ -220,18 +225,23 @@ export const StaffView: React.FC = () => {
               <form onSubmit={handleUpdateRoles} className="space-y-5">
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider">
-                    UUID des rôles (séparés par des virgules)
+                    Sélectionner le Rôle d'Accès
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={roleIds}
                     onChange={(e) => setRoleIds(e.target.value)}
                     required
-                    placeholder="ex: role-uuid-1, role-uuid-2"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
-                  />
-                  <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
-                    Saisissez les identifiants UUID des rôles à attribuer à cet employé. Cette opération écrasera ses rôles actuels.
+                    className="w-full px-4 py-3 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
+                  >
+                    <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">Choisir un rôle...</option>
+                    {roles.map(r => (
+                      <option key={r.id} value={r.id} className="dark:bg-slate-900 text-text-primary-light">
+                        {r.name} {r.description ? `(${r.description})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark leading-relaxed font-semibold">
+                    Attribuez l'un de ces rôles disponibles créés dans le système.
                   </p>
                 </div>
 
