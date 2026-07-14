@@ -61,3 +61,7 @@ export const leaveRestaurant = () => {
 export const getEmployees = () => {
   return api.get<StaffResponse[]>("/restaurant-users/employees");
 };
+
+export const updateEmployeeRole = (userId: string, data: { roleId: string }) => {
+  return api.patch<RestaurantUserJoinResponse>(`/restaurant-users/employees/${userId}/role`, data);
+};

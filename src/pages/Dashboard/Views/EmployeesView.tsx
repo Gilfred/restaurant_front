@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Users2,
   Mail,
-  ShieldCheck
+  ShieldCheck,
+  Edit2,
+  X,
+  Loader2,
+  CheckCircle2
 } from "lucide-react";
-import { getEmployees } from "../../../services/restaurant.service";
+import { getEmployees, updateEmployeeRole } from "../../../services/restaurant.service";
 import type { StaffResponse } from "../../../types/restaurant";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { StaffSkeleton } from "../../../components/RestoSkeletons";
@@ -16,6 +20,12 @@ export const EmployeesView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isDenied, setIsDenied] = useState(false);
   const [search, setSearch] = useState("");
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // Modal edit states
+  const [selectedUser, setSelectedUser] = useState<StaffResponse | null>(null);
+  const [roleId, setRoleId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchEmployees = async () => {
     try {
@@ -36,6 +46,26 @@ export const EmployeesView: React.FC = () => {
   useEffect(() => {
     fetchEmployees();
   }, []);
+
+  const handleUpdateRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+
+    setSuccess(null);
+    setSubmitting(true);
+
+    try {
+      await updateEmployeeRole(selectedUser.id, { roleId });
+      setSuccess(`Le rôle d'accès pour "${selectedUser.name}" a été mis à jour avec succès !`);
+      setSelectedUser(null);
+      setRoleId("");
+      fetchEmployees();
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const filtered = employees.filter(e =>
     e.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -76,7 +106,7 @@ export const EmployeesView: React.FC = () => {
             Employés de l'Établissement
           </h2>
           <p className="text-text-secondary-light dark:text-text-secondary-dark mt-1">
-            Consultez la liste complète de l'ensemble du personnel associé à votre restaurant.
+            Consultez et modifiez les rôles d'accès de l'ensemble du personnel associé à votre restaurant.
           </p>
         </div>
 
@@ -91,6 +121,13 @@ export const EmployeesView: React.FC = () => {
           />
         </div>
       </div>
+
+      {success && (
+        <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-500 text-sm font-medium flex items-center gap-2">
+          <CheckCircle2 size={18} />
+          {success}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((member) => (
@@ -134,10 +171,17 @@ export const EmployeesView: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-text-secondary-light dark:text-text-secondary-dark block">
-                  Statut
-                </span>
+              <div className="flex flex-col items-end gap-3">
+                <button
+                  onClick={() => {
+                    setSelectedUser(member);
+                    setRoleId(member.role?.id || "");
+                  }}
+                  className="p-2.5 rounded-xl glass-capsule text-text-secondary-light dark:text-text-secondary-dark hover:text-accent-light dark:hover:text-accent-dark hover:scale-105 transition-all"
+                  title="Modifier le rôle"
+                >
+                  <Edit2 size={14} />
+                </button>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide ${
                   member.status === "PENDING"
                     ? "bg-warning-light/10 text-warning-light border border-warning-light/20"
@@ -157,6 +201,69 @@ export const EmployeesView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Role Modal */}
+      <AnimatePresence>
+        {selectedUser && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card-premium w-full max-w-md p-8 relative overflow-hidden glass-reflection border border-white/20 dark:border-white/5"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Modifier le Rôle</h3>
+                  <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1">Pour {selectedUser.name}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedUser(null)}
+                  className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary-light dark:text-text-secondary-dark transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateRole} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider">
+                    UUID du Rôle d'Accès
+                  </label>
+                  <input
+                    type="text"
+                    value={roleId}
+                    onChange={(e) => setRoleId(e.target.value)}
+                    required
+                    placeholder="ex: role-uuid-1"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  />
+                  <p className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
+                    Saisissez l'UUID du nouveau rôle à attribuer à cet employé. Cette action mettra à jour instantanément ses permissions.
+                  </p>
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUser(null)}
+                    className="flex-1 py-3.5 glass-capsule rounded-2xl font-bold text-sm text-text-primary-light dark:text-text-primary-dark hover:scale-[1.02] transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 py-3.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-light/20 transition-all hover:scale-[1.02] disabled:opacity-50"
+                  >
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sauvegarder"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
