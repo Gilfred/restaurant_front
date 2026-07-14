@@ -9,6 +9,7 @@ import type {
   ApproveRequestPayload,
   MeRestaurantResponse,
   Role,
+  Permission,
 } from "../types/restaurant";
 
 export const createRestaurant = (data: RestaurantCreate) => {
@@ -69,4 +70,8 @@ export const updateEmployeeRole = (userId: string, data: { roleId: string }) => 
 
 export const listRoles = () => {
   return api.get<Role[]>("/roles/");
+};
+
+export const listPermissions = () => {
+  return api.get<Permission[]>("/permissions/");
 };

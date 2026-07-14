@@ -10,22 +10,29 @@ import {
   HelpCircle,
   Clock,
   LogOut,
-  Loader2
+  Loader2,
+  KeyRound,
+  Info
 } from "lucide-react";
-import { getMeRestaurant, leaveRestaurant } from "../../../services/restaurant.service";
-import type { MeRestaurantResponse } from "../../../types/restaurant";
+import { getMeRestaurant, leaveRestaurant, listPermissions } from "../../../services/restaurant.service";
+import type { MeRestaurantResponse, Permission } from "../../../types/restaurant";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
 
 export const MyRestaurantView: React.FC = () => {
   const [data, setData] = useState<MeRestaurantResponse | null>(null);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [leaving, setLeaving] = useState(false);
 
-  const fetchMeRestaurant = async () => {
+  const fetchMeRestaurantAndPermissions = async () => {
     try {
       setLoading(true);
-      const res = await getMeRestaurant();
-      setData(res.data);
+      const [meRes, permRes] = await Promise.all([
+        getMeRestaurant(),
+        listPermissions()
+      ]);
+      setData(meRes.data);
+      setPermissions(permRes.data);
     } catch (err: any) {
       console.error(err);
       setData(null);
@@ -35,7 +42,7 @@ export const MyRestaurantView: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchMeRestaurant();
+    fetchMeRestaurantAndPermissions();
   }, []);
 
   const handleLeave = async () => {
@@ -246,6 +253,42 @@ export const MyRestaurantView: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Glossary of Permissions */}
+      <div className="glass-card-premium p-8 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent-neon/30 to-accent-light/30" />
+
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-accent-light/10 flex items-center justify-center text-accent-light">
+            <KeyRound size={20} />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Glossaire des Permissions Système</h3>
+            <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">Consultez la liste et la description de toutes les habilitations de la plateforme.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {permissions.map((perm) => (
+            <div
+              key={perm.id}
+              className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 flex gap-3.5"
+            >
+              <div className="w-8 h-8 rounded-lg bg-accent-light/15 text-accent-light flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Info size={14} />
+              </div>
+              <div className="space-y-1">
+                <h5 className="font-extrabold text-xs text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider">
+                  {perm.name}
+                </h5>
+                <p className="text-[11px] text-text-secondary-light dark:text-text-secondary-dark leading-relaxed font-semibold">
+                  {perm.description || "Aucune description disponible."}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
