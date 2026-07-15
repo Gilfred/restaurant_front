@@ -10,6 +10,7 @@ import type {
   MeRestaurantResponse,
   Role,
   Permission,
+  CondimentResponse,
 } from "../types/restaurant";
 
 export const createRestaurant = (data: RestaurantCreate) => {
@@ -74,4 +75,8 @@ export const listRoles = () => {
 
 export const listPermissions = () => {
   return api.get<Permission[]>("/permissions/");
+};
+
+export const listCondiments = () => {
+  return api.get<CondimentResponse[]>("/condiments/");
 };

@@ -74,6 +74,14 @@ export interface MeRestaurantResponse {
   role?: Role | null;
   status: string;
 }
+
+export interface CondimentResponse {
+  nomcondiment: string;
+  restaurantId: string;
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
 export interface RestaurantUserJoinResponse {
   id: string;
   userId: string;

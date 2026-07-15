@@ -21,7 +21,9 @@ import {
   UserPlus,
   Inbox,
   Briefcase,
-  Contact
+  Contact,
+  Salad,
+  List
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -57,6 +59,14 @@ const menuItems: MenuItem[] = [
       { id: 'affiliation-employees', label: 'Employés' }
     ]
   },
+  {
+    icon: Salad,
+    label: 'Condiments',
+    id: 'condiments',
+    children: [
+      { id: 'condiments-list', label: 'Liste' }
+    ]
+  },
   { icon: Package, label: 'Stocks', id: 'inventory' },
   { icon: BarChart3, label: 'Rapports', id: 'reports' },
   { icon: Settings, label: 'Paramètres', id: 'settings' },
@@ -74,6 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { logoutUser } = useAuth();
   const [isRestoExpanded, setIsRestoExpanded] = useState(true);
   const [isAffiliationExpanded, setIsAffiliationExpanded] = useState(true);
+  const [isCondimentsExpanded, setIsCondimentsExpanded] = useState(true);
 
   const handleLogout = async () => {
     try {
@@ -99,6 +110,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         setIsAffiliationExpanded(true);
       } else {
         setIsAffiliationExpanded(!isAffiliationExpanded);
+      }
+    } else if (item.id === 'condiments') {
+      if (isCollapsed) {
+        setIsCollapsed(false);
+        setIsCondimentsExpanded(true);
+      } else {
+        setIsCondimentsExpanded(!isCondimentsExpanded);
       }
     } else {
       onMenuItemClick?.(item.id);
@@ -130,6 +148,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <Briefcase size={16} />;
       case 'affiliation-employees':
         return <Contact size={16} />;
+      case 'condiments-list':
+        return <List size={16} />;
       default:
         return null;
     }
@@ -171,7 +191,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {menuItems.map((item) => {
             const hasChildren = item.children && item.children.length > 0;
             const isSelected = activeId === item.id || (hasChildren && item.children?.some(c => c.id === activeId));
-            const isExpanded = item.id === 'resto' ? isRestoExpanded : isAffiliationExpanded;
+
+            let isExpanded = false;
+            if (item.id === 'resto') isExpanded = isRestoExpanded;
+            else if (item.id === 'affiliation') isExpanded = isAffiliationExpanded;
+            else if (item.id === 'condiments') isExpanded = isCondimentsExpanded;
+
+            const visibleChildren = item.children;
 
             return (
               <div key={item.id} className="space-y-1">
@@ -205,7 +231,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {/* Sub-menu rendering */}
                 {hasChildren && isExpanded && !isCollapsed && (
                   <div className="pl-6 space-y-1 mt-1 transition-all duration-300">
-                    {item.children?.map((child) => {
+                    {visibleChildren?.map((child) => {
                       const isChildActive = activeId === child.id;
                       return (
                         <button
