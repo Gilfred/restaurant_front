@@ -88,3 +88,11 @@ export const createCondiment = (data: { nomcondiment: string }) => {
 export const getCondiment = (condimentId: string) => {
   return api.get<CondimentResponse>(`/condiments/${condimentId}`);
 };
+
+export const updateCondiment = (condimentId: string, data: { nomcondiment: string }) => {
+  return api.put<CondimentResponse>(`/condiments/${condimentId}`, data);
+};
+
+export const deleteCondiment = (condimentId: string) => {
+  return api.delete<string>(`/condiments/${condimentId}`);
+};

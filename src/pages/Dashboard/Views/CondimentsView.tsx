@@ -11,9 +11,17 @@ import {
   CheckCircle2,
   Sparkles,
   Eye,
-  Info
+  Info,
+  Edit2,
+  Trash2
 } from "lucide-react";
-import { listCondiments, createCondiment, getCondiment } from "../../../services/restaurant.service";
+import {
+  listCondiments,
+  createCondiment,
+  getCondiment,
+  updateCondiment,
+  deleteCondiment
+} from "../../../services/restaurant.service";
 import type { CondimentResponse } from "../../../types/restaurant";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
@@ -26,10 +34,18 @@ export const CondimentsView: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Action loading states
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   // Creation modal states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [nomcondiment, setNomcondiment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Editing modal states
+  const [editCondiment, setEditCondiment] = useState<CondimentResponse | null>(null);
+  const [editNom, setEditNom] = useState("");
+  const [updating, setInsUpdating] = useState(false);
 
   // Detailed inspect states
   const [selectedCondiment, setSelectedCondiment] = useState<CondimentResponse | null>(null);
@@ -72,6 +88,49 @@ export const CondimentsView: React.FC = () => {
       setError(err.response?.data?.detail?.[0]?.msg || err.response?.data?.detail || "Échec de la création du condiment.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editCondiment) return;
+
+    setSuccess(null);
+    setError(null);
+    setInsUpdating(true);
+
+    try {
+      await updateCondiment(editCondiment.id, { nomcondiment: editNom });
+      setSuccess("Condiment mis à jour avec succès !");
+      setEditCondiment(null);
+      setEditNom("");
+      fetchCondiments();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail?.[0]?.msg || err.response?.data?.detail || "Échec de la mise à jour du condiment.");
+    } finally {
+      setInsUpdating(false);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement le condiment "${name}" ?`)) {
+      return;
+    }
+
+    setSuccess(null);
+    setError(null);
+    setDeletingId(id);
+
+    try {
+      await deleteCondiment(id);
+      setSuccess("Condiment supprimé avec succès !");
+      fetchCondiments();
+    } catch (err: any) {
+      console.error(err);
+      setError("Impossible de supprimer le condiment.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -125,7 +184,7 @@ export const CondimentsView: React.FC = () => {
             Condiments de Cuisine
           </h2>
           <p className="text-text-secondary-light dark:text-text-secondary-dark mt-1">
-            Gérez et visualisez les condiments et accompagnements enregistrés pour vos plats d'exception.
+            Gérez, éditez et supprimez les condiments et accompagnements enregistrés pour vos plats d'exception.
           </p>
         </div>
 
@@ -193,13 +252,38 @@ export const CondimentsView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-black/5 dark:border-white/5 mt-4 flex justify-end">
+              <div className="pt-4 border-t border-black/5 dark:border-white/5 mt-6 flex justify-between gap-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setEditCondiment(condiment);
+                      setEditNom(condiment.nomcondiment);
+                    }}
+                    className="p-2 rounded-lg glass-capsule text-text-secondary-light dark:text-text-secondary-dark hover:text-accent-light dark:hover:text-accent-dark transition-all"
+                    title="Modifier"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(condiment.id, condiment.nomcondiment)}
+                    disabled={deletingId === condiment.id}
+                    className="p-2 rounded-lg glass-capsule text-danger-light hover:bg-danger-light/10 transition-all"
+                    title="Supprimer"
+                  >
+                    {deletingId === condiment.id ? (
+                      <Loader2 size={14} className="animate-spin text-danger-light" />
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
+                  </button>
+                </div>
+
                 <button
                   onClick={() => handleInspect(condiment.id)}
                   disabled={inspecting}
-                  className="px-3.5 py-2 glass-capsule hover:text-accent-light dark:hover:text-accent-dark text-text-secondary-light dark:text-text-secondary-dark font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all hover:scale-105"
+                  className="px-3.5 py-1.5 glass-capsule hover:text-accent-light dark:hover:text-accent-dark text-text-secondary-light dark:text-text-secondary-dark font-bold text-xs rounded-xl flex items-center gap-1 transition-all hover:scale-105"
                 >
-                  <Eye size={14} />
+                  <Eye size={12} />
                   Consulter
                 </button>
               </div>
@@ -265,6 +349,64 @@ export const CondimentsView: React.FC = () => {
                     className="flex-1 py-3.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-light/20 transition-all hover:scale-[1.02] disabled:opacity-50"
                   >
                     {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Créer le Condiment"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Editing Modal */}
+      <AnimatePresence>
+        {editCondiment && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card-premium w-full max-w-md p-8 relative overflow-hidden border border-white/20 dark:border-white/5"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-accent-light animate-pulse" />
+                  <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Modifier Condiment</h3>
+                </div>
+                <button
+                  onClick={() => setEditCondiment(null)}
+                  className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary-light dark:text-text-secondary-dark transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">Nom du condiment</label>
+                  <input
+                    type="text"
+                    value={editNom}
+                    onChange={(e) => setEditNom(e.target.value)}
+                    required
+                    placeholder="ex: Moutarde, Ketchup"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditCondiment(null)}
+                    className="flex-1 py-3.5 glass-capsule rounded-2xl font-bold text-sm text-text-primary-light dark:text-text-primary-dark hover:scale-[1.02] transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updating}
+                    className="flex-1 py-3.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-light/20 transition-all hover:scale-[1.02] disabled:opacity-50"
+                  >
+                    {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sauvegarder"}
                   </button>
                 </div>
               </form>
