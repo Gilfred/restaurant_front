@@ -12,13 +12,22 @@ import {
   Info,
   Plus
 } from "lucide-react";
-import { listAppros, createAppro, getAppro } from "../../../services/restaurant.service";
-import type { ApproResponse } from "../../../types/restaurant";
+import {
+  listAppros,
+  createAppro,
+  getAppro,
+  listCondiments,
+  listUnites
+} from "../../../services/restaurant.service";
+import type { ApproResponse, CondimentResponse, UniteResponse } from "../../../types/restaurant";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
 
 export const ApproView: React.FC = () => {
   const [appros, setAppros] = useState<ApproResponse[]>([]);
+  const [condiments, setCondiments] = useState<CondimentResponse[]>([]);
+  const [unites, setUnites] = useState<UniteResponse[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [isDenied, setIsDenied] = useState(false);
   const [search, setSearch] = useState("");
@@ -37,12 +46,18 @@ export const ApproView: React.FC = () => {
   const [selectedAppro, setSelectedAppro] = useState<ApproResponse | null>(null);
   const [inspecting, setInspecting] = useState(false);
 
-  const fetchAppros = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       setIsDenied(false);
-      const res = await listAppros();
-      setAppros(res.data);
+      const [approsRes, condRes, unitesRes] = await Promise.all([
+        listAppros(),
+        listCondiments(),
+        listUnites()
+      ]);
+      setAppros(approsRes.data);
+      setCondiments(condRes.data);
+      setUnites(unitesRes.data);
     } catch (err: any) {
       console.error(err);
       if (err.response?.status === 403 || err.response?.status === 401) {
@@ -54,7 +69,7 @@ export const ApproView: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchAppros();
+    fetchData();
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -71,7 +86,7 @@ export const ApproView: React.FC = () => {
       setPrix(0);
       setQte(0);
       setIsCreateOpen(false);
-      fetchAppros();
+      fetchData();
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.detail?.[0]?.msg || err.response?.data?.detail || "Échec de la création de l'approvisionnement.");
@@ -92,10 +107,21 @@ export const ApproView: React.FC = () => {
     }
   };
 
-  const filtered = appros.filter(a =>
-    a.condimentId.toLowerCase().includes(search.toLowerCase()) ||
-    a.uniteId.toLowerCase().includes(search.toLowerCase())
-  );
+  // Helpers to resolve Names instead of UUIDs in rendering
+  const getCondimentName = (id: string) => {
+    const condiment = condiments.find(c => c.id === id);
+    return condiment ? condiment.nomcondiment : `ID: ${id.substring(0, 8)}`;
+  };
+
+  const getUniteName = (id: string) => {
+    const unite = unites.find(u => u.id === id);
+    return unite ? unite.unite : `ID: ${id.substring(0, 8)}`;
+  };
+
+  const filtered = appros.filter(a => {
+    const name = getCondimentName(a.condimentId).toLowerCase();
+    return name.includes(search.toLowerCase()) || a.condimentId.toLowerCase().includes(search.toLowerCase());
+  });
 
   if (loading) {
     return (
@@ -139,7 +165,7 @@ export const ApproView: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark group-focus-within:text-accent-light transition-colors" />
             <input
               type="text"
-              placeholder="Rechercher par ID condiment..."
+              placeholder="Rechercher par condiment..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
@@ -182,14 +208,14 @@ export const ApproView: React.FC = () => {
 
             <div className="p-6 flex-1 flex flex-col justify-between">
               <div>
-                <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark group-hover:text-accent-light transition-colors mb-4 line-clamp-1 font-mono text-xs">
-                  Condiment ID: {appro.condimentId}
+                <h3 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark group-hover:text-accent-light transition-colors mb-4 line-clamp-1">
+                  {getCondimentName(appro.condimentId)}
                 </h3>
 
                 <div className="space-y-3 pt-4 border-t border-black/5 dark:border-white/5 text-sm text-text-secondary-light dark:text-text-secondary-dark font-medium">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-text-secondary-light font-semibold uppercase tracking-wider">Quantité</span>
-                    <span className="font-extrabold text-text-primary-light dark:text-text-primary-dark">{appro.qte} (ID Unité: {appro.uniteId.substring(0, 8)}...)</span>
+                    <span className="font-extrabold text-text-primary-light dark:text-text-primary-dark">{appro.qte} {getUniteName(appro.uniteId)}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-text-secondary-light font-semibold uppercase tracking-wider">Prix</span>
@@ -249,27 +275,37 @@ export const ApproView: React.FC = () => {
 
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">UUID Condiment</label>
-                  <input
-                    type="text"
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">Condiment</label>
+                  <select
                     value={condimentId}
                     onChange={(e) => setCondimentId(e.target.value)}
                     required
-                    placeholder="3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm font-mono"
-                  />
+                    className="w-full px-4 py-3 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
+                  >
+                    <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">Sélectionner un condiment...</option>
+                    {condiments.map(c => (
+                      <option key={c.id} value={c.id} className="dark:bg-slate-900 text-text-primary-light font-semibold">
+                        {c.nomcondiment}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">UUID Unité</label>
-                  <input
-                    type="text"
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">Unité de mesure</label>
+                  <select
                     value={uniteId}
                     onChange={(e) => setUniteId(e.target.value)}
                     required
-                    placeholder="3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm font-mono"
-                  />
+                    className="w-full px-4 py-3 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
+                  >
+                    <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">Sélectionner une unité...</option>
+                    {unites.map(u => (
+                      <option key={u.id} value={u.id} className="dark:bg-slate-900 text-text-primary-light font-semibold">
+                        {u.unite} {u.isActive ? "" : "(Inactif)"}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -353,13 +389,13 @@ export const ApproView: React.FC = () => {
                 </div>
 
                 <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-1">
-                  <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">ID Condiment</span>
-                  <span className="text-xs font-mono font-bold text-accent-light block select-all">{selectedAppro.condimentId}</span>
+                  <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">Nom Condiment</span>
+                  <span className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark block">{getCondimentName(selectedAppro.condimentId)}</span>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-1">
-                  <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">ID Unité</span>
-                  <span className="text-xs font-mono font-bold text-accent-light block select-all">{selectedAppro.uniteId}</span>
+                  <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">Unité de mesure</span>
+                  <span className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark block">{getUniteName(selectedAppro.uniteId)}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

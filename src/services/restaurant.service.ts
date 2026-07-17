@@ -13,6 +13,7 @@ import type {
   CondimentResponse,
   ApproResponse,
   ApproCreate,
+  UniteResponse,
 } from "../types/restaurant";
 
 export const createRestaurant = (data: RestaurantCreate) => {
@@ -109,4 +110,8 @@ export const createAppro = (data: ApproCreate) => {
 
 export const getAppro = (approId: string) => {
   return api.get<ApproResponse>(`/appro-cuisine/${approId}`);
+};
+
+export const listUnites = () => {
+  return api.get<UniteResponse[]>("/unites/");
 };

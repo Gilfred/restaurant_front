@@ -99,6 +99,15 @@ export interface ApproCreate {
   prix: number;
   qte: number;
 }
+
+export interface UniteResponse {
+  unite: string;
+  restaurantId: string;
+  id: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 export interface RestaurantUserJoinResponse {
   id: string;
   userId: string;
