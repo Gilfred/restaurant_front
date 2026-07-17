@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Salad,
   Calendar,
-  Building2
+  Building2,
+  Plus,
+  X,
+  Loader2,
+  CheckCircle2,
+  Sparkles,
+  Eye,
+  Info
 } from "lucide-react";
-import { listCondiments } from "../../../services/restaurant.service";
+import { listCondiments, createCondiment, getCondiment } from "../../../services/restaurant.service";
 import type { CondimentResponse } from "../../../types/restaurant";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
@@ -16,6 +23,17 @@ export const CondimentsView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isDenied, setIsDenied] = useState(false);
   const [search, setSearch] = useState("");
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Creation modal states
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [nomcondiment, setNomcondiment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Detailed inspect states
+  const [selectedCondiment, setSelectedCondiment] = useState<CondimentResponse | null>(null);
+  const [inspecting, setInspecting] = useState(false);
 
   const fetchCondiments = async () => {
     try {
@@ -36,6 +54,38 @@ export const CondimentsView: React.FC = () => {
   useEffect(() => {
     fetchCondiments();
   }, []);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSuccess(null);
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      await createCondiment({ nomcondiment });
+      setSuccess("Condiment créé avec succès !");
+      setNomcondiment("");
+      setIsCreateOpen(false);
+      fetchCondiments();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail?.[0]?.msg || err.response?.data?.detail || "Échec de la création du condiment.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleInspect = async (id: string) => {
+    setInspecting(true);
+    try {
+      const res = await getCondiment(id);
+      setSelectedCondiment(res.data);
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setInspecting(false);
+    }
+  };
 
   const filtered = condiments.filter(c =>
     c.nomcondiment.toLowerCase().includes(search.toLowerCase()) ||
@@ -75,21 +125,44 @@ export const CondimentsView: React.FC = () => {
             Condiments de Cuisine
           </h2>
           <p className="text-text-secondary-light dark:text-text-secondary-dark mt-1">
-            Visualisez et filtrez les condiments et accompagnements enregistrés pour vos plats.
+            Gérez et visualisez les condiments et accompagnements enregistrés pour vos plats d'exception.
           </p>
         </div>
 
-        <div className="relative group min-w-[240px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark group-focus-within:text-accent-light transition-colors" />
-          <input
-            type="text"
-            placeholder="Rechercher un condiment..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <div className="relative group min-w-[240px]">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark group-focus-within:text-accent-light transition-colors" />
+            <input
+              type="text"
+              placeholder="Rechercher..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+            />
+          </div>
+
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-accent-light/20 active:scale-[0.98]"
+          >
+            <Plus size={20} />
+            Créer un condiment
+          </button>
         </div>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm font-medium">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-500 text-sm font-medium flex items-center gap-2">
+          <CheckCircle2 size={18} />
+          {success}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((condiment) => (
@@ -119,6 +192,17 @@ export const CondimentsView: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              <div className="pt-4 border-t border-black/5 dark:border-white/5 mt-4 flex justify-end">
+                <button
+                  onClick={() => handleInspect(condiment.id)}
+                  disabled={inspecting}
+                  className="px-3.5 py-2 glass-capsule hover:text-accent-light dark:hover:text-accent-dark text-text-secondary-light dark:text-text-secondary-dark font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all hover:scale-105"
+                >
+                  <Eye size={14} />
+                  Consulter
+                </button>
+              </div>
             </div>
           </motion.div>
         ))}
@@ -130,6 +214,120 @@ export const CondimentsView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Creation Modal */}
+      <AnimatePresence>
+        {isCreateOpen && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card-premium w-full max-w-md p-8 relative overflow-hidden glass-reflection border border-white/20 dark:border-white/5"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-accent-light animate-pulse" />
+                  <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">Nouveau Condiment</h3>
+                </div>
+                <button
+                  onClick={() => setIsCreateOpen(false)}
+                  className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary-light dark:text-text-secondary-dark transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreate} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">Nom du condiment</label>
+                  <input
+                    type="text"
+                    value={nomcondiment}
+                    onChange={(e) => setNomcondiment(e.target.value)}
+                    required
+                    placeholder="ex: Moutarde de Dijon, Huile de Truffe"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateOpen(false)}
+                    className="flex-1 py-3.5 glass-capsule rounded-2xl font-bold text-sm text-text-primary-light dark:text-text-primary-dark hover:scale-[1.02] transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 py-3.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-light/20 transition-all hover:scale-[1.02] disabled:opacity-50"
+                  >
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Créer le Condiment"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Inspect Detail Modal */}
+      <AnimatePresence>
+        {selectedCondiment && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card-premium w-full max-w-md p-8 relative overflow-hidden border border-white/20 dark:border-white/5"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2.5">
+                  <Info className="w-5 h-5 text-accent-light" />
+                  <h3 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Fiche d'Information</h3>
+                </div>
+                <button
+                  onClick={() => setSelectedCondiment(null)}
+                  className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary-light dark:text-text-secondary-dark transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-1">
+                  <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">Nom Condiment</span>
+                  <span className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">{selectedCondiment.nomcondiment}</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-1">
+                  <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">ID Condiment</span>
+                  <span className="text-xs font-mono font-bold text-accent-light block select-all">{selectedCondiment.id}</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-1">
+                  <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">ID Restaurant</span>
+                  <span className="text-xs font-mono font-bold text-accent-light block select-all">{selectedCondiment.restaurantId}</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-1">
+                  <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">Création & Enregistrement</span>
+                  <span className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark block">{new Date(selectedCondiment.createdAt).toLocaleString()}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedCondiment(null)}
+                className="w-full py-3.5 mt-6 glass-capsule rounded-2xl font-bold text-sm text-text-primary-light dark:text-text-primary-dark hover:scale-[1.01] transition-all"
+              >
+                Fermer
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

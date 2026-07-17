@@ -80,3 +80,11 @@ export const listPermissions = () => {
 export const listCondiments = () => {
   return api.get<CondimentResponse[]>("/condiments/");
 };
+
+export const createCondiment = (data: { nomcondiment: string }) => {
+  return api.post<CondimentResponse>("/condiments/", data);
+};
+
+export const getCondiment = (condimentId: string) => {
+  return api.get<CondimentResponse>(`/condiments/${condimentId}`);
+};
