@@ -82,6 +82,23 @@ export interface CondimentResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ApproResponse {
+  condimentId: string;
+  uniteId: string;
+  prix: number;
+  qte: number;
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApproCreate {
+  condimentId: string;
+  uniteId: string;
+  prix: number;
+  qte: number;
+}
 export interface RestaurantUserJoinResponse {
   id: string;
   userId: string;

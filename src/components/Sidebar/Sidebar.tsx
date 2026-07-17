@@ -23,7 +23,8 @@ import {
   Briefcase,
   Contact,
   Salad,
-  List
+  List,
+  CookingPot
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -35,7 +36,14 @@ const menuItems: MenuItem[] = [
   { icon: ShoppingCart, label: 'Commandes', id: 'orders' },
   { icon: UtensilsCrossed, label: 'Tables', id: 'tables' },
   { icon: CalendarDays, label: 'Réservations', id: 'reservations' },
-  { icon: ChefHat, label: 'Cuisine', id: 'kitchen' },
+  {
+    icon: ChefHat,
+    label: 'Cuisine',
+    id: 'kitchen',
+    children: [
+      { id: 'cuisine-appro', label: 'Approvisionnements' }
+    ]
+  },
   {
     icon: Building2,
     label: 'Resto',
@@ -85,6 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isRestoExpanded, setIsRestoExpanded] = useState(true);
   const [isAffiliationExpanded, setIsAffiliationExpanded] = useState(true);
   const [isCondimentsExpanded, setIsCondimentsExpanded] = useState(true);
+  const [isKitchenExpanded, setIsKitchenExpanded] = useState(true);
 
   const handleLogout = async () => {
     try {
@@ -118,6 +127,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       } else {
         setIsCondimentsExpanded(!isCondimentsExpanded);
       }
+    } else if (item.id === 'kitchen') {
+      if (isCollapsed) {
+        setIsCollapsed(false);
+        setIsKitchenExpanded(true);
+      } else {
+        setIsKitchenExpanded(!isKitchenExpanded);
+      }
     } else {
       onMenuItemClick?.(item.id);
     }
@@ -150,6 +166,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <Contact size={16} />;
       case 'condiments-list':
         return <List size={16} />;
+      case 'cuisine-appro':
+        return <CookingPot size={16} />;
       default:
         return null;
     }
@@ -196,6 +214,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             if (item.id === 'resto') isExpanded = isRestoExpanded;
             else if (item.id === 'affiliation') isExpanded = isAffiliationExpanded;
             else if (item.id === 'condiments') isExpanded = isCondimentsExpanded;
+            else if (item.id === 'kitchen') isExpanded = isKitchenExpanded;
 
             const visibleChildren = item.children;
 

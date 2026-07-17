@@ -11,6 +11,8 @@ import type {
   Role,
   Permission,
   CondimentResponse,
+  ApproResponse,
+  ApproCreate,
 } from "../types/restaurant";
 
 export const createRestaurant = (data: RestaurantCreate) => {
@@ -95,4 +97,16 @@ export const updateCondiment = (condimentId: string, data: { nomcondiment: strin
 
 export const deleteCondiment = (condimentId: string) => {
   return api.delete<string>(`/condiments/${condimentId}`);
+};
+
+export const listAppros = () => {
+  return api.get<ApproResponse[]>("/appro-cuisine/");
+};
+
+export const createAppro = (data: ApproCreate) => {
+  return api.post<ApproResponse>("/appro-cuisine/", data);
+};
+
+export const getAppro = (approId: string) => {
+  return api.get<ApproResponse>(`/appro-cuisine/${approId}`);
 };

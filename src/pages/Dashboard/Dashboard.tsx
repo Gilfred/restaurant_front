@@ -22,6 +22,7 @@ import { RequestsView } from './Views/RequestsView';
 import { MyRestaurantView } from './Views/MyRestaurantView';
 import { EmployeesView } from './Views/EmployeesView';
 import { CondimentsView } from './Views/CondimentsView';
+import { ApproView } from './Views/ApproView';
 
 import type { Stat, BestSellingProduct } from './Dashboard.types';
 
@@ -231,6 +232,17 @@ export const Dashboard: React.FC = () => {
             className="p-4 sm:p-8"
           >
             <CondimentsView />
+          </motion.div>
+        );
+
+      case 'cuisine-appro':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-8"
+          >
+            <ApproView />
           </motion.div>
         );
 
