@@ -115,3 +115,7 @@ export const getAppro = (approId: string) => {
 export const listUnites = () => {
   return api.get<UniteResponse[]>("/unites/");
 };
+
+export const createUnite = (data: { unite: string }) => {
+  return api.post<UniteResponse>("/unites/", data);
+};

@@ -24,7 +24,8 @@ import {
   Contact,
   Salad,
   List,
-  CookingPot
+  CookingPot,
+  Scale
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -72,7 +73,8 @@ const menuItems: MenuItem[] = [
     label: 'Condiments',
     id: 'condiments',
     children: [
-      { id: 'condiments-list', label: 'Liste' }
+      { id: 'condiments-list', label: 'Liste' },
+      { id: 'condiments-unites', label: 'Unités' }
     ]
   },
   { icon: Package, label: 'Stocks', id: 'inventory' },
@@ -166,6 +168,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <Contact size={16} />;
       case 'condiments-list':
         return <List size={16} />;
+      case 'condiments-unites':
+        return <Scale size={16} />;
       case 'cuisine-appro':
         return <CookingPot size={16} />;
       default:
