@@ -60,7 +60,8 @@ export const Login: React.FC = () => {
       // Étape 2: Synchronisation de la session (vérification du cookie)
       try {
         await refreshUser();
-        navigate("/dashboard", { replace: true });
+        const from = state?.from?.pathname || "/dashboard";
+        navigate(from, { replace: true });
       } catch (syncErr: any) {
         console.error("Erreur de synchronisation de session:", syncErr);
         setError(

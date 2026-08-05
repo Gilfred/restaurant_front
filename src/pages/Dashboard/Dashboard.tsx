@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Sidebar } from '../../components/Sidebar';
+import { Loader } from '../../components/Loader';
 import { Topbar } from '../../components/Topbar';
 import { StatCard } from '../../components/StatCard';
 import { SalesOverview } from '../../components/SalesOverview';
@@ -59,7 +61,25 @@ const item = {
 export const Dashboard: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
-  const [activeMenuId, setActiveMenuId] = useState<string>('dashboard');
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeMenuId = searchParams.get('page') || 'dashboard';
+  const [isChangingPage, setIsChangingPage] = useState(false);
+
+  const setActiveMenuId = (id: string) => {
+    if (id !== activeMenuId) {
+      setSearchParams({ page: id });
+    }
+  };
+
+  useEffect(() => {
+    setIsChangingPage(true);
+    const timer = setTimeout(() => {
+      setIsChangingPage(false);
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [activeMenuId]);
 
   const renderContent = () => {
     switch (activeMenuId) {
@@ -289,7 +309,21 @@ export const Dashboard: React.FC = () => {
           <Topbar onMenuClick={() => setIsSidebarOpen(true)} />
 
           <AnimatePresence mode="wait">
-            {renderContent()}
+            {isChangingPage ? (
+              <motion.div
+                key="loader"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center justify-center min-h-[50vh] h-[calc(100vh-150px)] lg:h-[calc(95vh-120px)] w-full"
+              >
+                <Loader size="lg" message="Chargement..." />
+              </motion.div>
+            ) : (
+              <div key={activeMenuId}>
+                {renderContent()}
+              </div>
+            )}
           </AnimatePresence>
         </main>
       </div>
