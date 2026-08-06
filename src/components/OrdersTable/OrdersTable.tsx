@@ -3,11 +3,11 @@ import { cn } from '../../utils/cn';
 import type { Order, Status } from './OrdersTable.types';
 
 const orders: Order[] = [
-  { id: '#8923', client: 'Jean Dupont', amount: '45.00 €', status: 'Terminée', date: '14:20' },
-  { id: '#8924', client: 'Marie Curie', amount: '128.50 €', status: 'En préparation', date: '14:25' },
-  { id: '#8925', client: 'Marc Lefebvre', amount: '32.00 €', status: 'Servie', date: '14:30' },
-  { id: '#8926', client: 'Sophie Martin', amount: '89.20 €', status: 'En attente', date: '14:35' },
-  { id: '#8927', client: 'Lucie Bernard', amount: '56.00 €', status: 'Annulée', date: '14:40' },
+  { id: '#8923', client: 'Jean Dupont', amount: '45 000 F CFA', status: 'Terminée', date: '14:20' },
+  { id: '#8924', client: 'Marie Curie', amount: '128 500 F CFA', status: 'En préparation', date: '14:25' },
+  { id: '#8925', client: 'Marc Lefebvre', amount: '32 000 F CFA', status: 'Servie', date: '14:30' },
+  { id: '#8926', client: 'Sophie Martin', amount: '89 200 F CFA', status: 'En attente', date: '14:35' },
+  { id: '#8927', client: 'Lucie Bernard', amount: '56 000 F CFA', status: 'Annulée', date: '14:40' },
 ];
 
 const statusStyles: Record<Status, string> = {

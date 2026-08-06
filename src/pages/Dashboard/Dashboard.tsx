@@ -30,17 +30,17 @@ import { UnitesView } from './Views/UnitesView';
 import type { Stat, BestSellingProduct } from './Dashboard.types';
 
 const stats: Stat[] = [
-  { title: "Chiffre d'affaires", value: "12,450.00 €", trend: 12.5, icon: DollarSign, color: 'blue', data: [{value: 400}, {value: 600}, {value: 500}, {value: 700}, {value: 800}, {value: 750}, {value: 900}] },
+  { title: "Chiffre d'affaires", value: "12 450 000 F CFA", trend: 12.5, icon: DollarSign, color: 'blue', data: [{value: 400}, {value: 600}, {value: 500}, {value: 700}, {value: 800}, {value: 750}, {value: 900}] },
   { title: "Commandes", value: "145", trend: 8.2, icon: ShoppingBag, color: 'green', data: [{value: 30}, {value: 45}, {value: 35}, {value: 50}, {value: 40}, {value: 60}, {value: 55}] },
   { title: "Nouveaux clients", value: "48", trend: -2.4, icon: Users, color: 'orange', data: [{value: 10}, {value: 15}, {value: 8}, {value: 12}, {value: 10}, {value: 14}, {value: 11}] },
   { title: "Tables occupées", value: "18/25", trend: 5.1, icon: Utensils, color: 'red', data: [{value: 12}, {value: 18}, {value: 15}, {value: 20}, {value: 16}, {value: 22}, {value: 18}] },
 ];
 
 const bestSellingProducts: BestSellingProduct[] = [
-  { name: 'Burger Signature', sales: '450', price: '18.00 €', progress: 85, color: 'bg-accent-light' },
-  { name: 'Pizza Truffe', sales: '380', price: '22.00 €', progress: 70, color: 'bg-success-light' },
-  { name: 'Pasta Carbonara', sales: '310', price: '16.50 €', progress: 60, color: 'bg-warning-light' },
-  { name: 'Salade César', sales: '240', price: '14.00 €', progress: 45, color: 'bg-danger-light' },
+  { name: 'Burger Signature', sales: '450', price: '18 000 F CFA', progress: 85, color: 'bg-accent-light' },
+  { name: 'Pizza Truffe', sales: '380', price: '22 000 F CFA', progress: 70, color: 'bg-success-light' },
+  { name: 'Pasta Carbonara', sales: '310', price: '16 500 F CFA', progress: 60, color: 'bg-warning-light' },
+  { name: 'Salade César', sales: '240', price: '14 000 F CFA', progress: 45, color: 'bg-danger-light' },
 ];
 
 const container = {
