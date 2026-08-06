@@ -219,7 +219,7 @@ export const ApproView: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-text-secondary-light font-semibold uppercase tracking-wider">Prix</span>
-                    <span className="font-extrabold text-success-light">{appro.prix} €</span>
+                    <span className="font-extrabold text-success-light">{appro.prix} F CFA</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-text-secondary-light dark:text-text-secondary-dark font-semibold pt-1">
                     <Calendar className="w-3.5 h-3.5 text-accent-light" />
@@ -323,7 +323,7 @@ export const ApproView: React.FC = () => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">Prix (€)</label>
+                    <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">Prix (F CFA)</label>
                     <input
                       type="number"
                       value={prix}
@@ -405,7 +405,7 @@ export const ApproView: React.FC = () => {
                   </div>
                   <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-1">
                     <span className="text-[10px] font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest block">Prix</span>
-                    <span className="text-sm font-extrabold text-success-light block">{selectedAppro.prix} €</span>
+                    <span className="text-sm font-extrabold text-success-light block">{selectedAppro.prix} F CFA</span>
                   </div>
                 </div>
 
