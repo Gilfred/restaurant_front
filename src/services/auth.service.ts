@@ -4,6 +4,7 @@ import type {
   LoginResponse,
   RegisterRequest,
   ForgotPasswordRequest,
+  ResetPasswordRequest,
 } from "../types/auth";
 
 export const login = (data: LoginRequest) => {
@@ -16,6 +17,10 @@ export const register = (data: RegisterRequest) => {
 
 export const forgotPassword = (data: ForgotPasswordRequest) => {
   return api.post("/auth/forgot-password", data);
+};
+
+export const resetPassword = (data: ResetPasswordRequest) => {
+  return api.post("/auth/reset-password", data);
 };
 
 export const logout = () => {

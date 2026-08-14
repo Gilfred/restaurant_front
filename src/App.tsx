@@ -4,6 +4,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { ForgotPassword } from "./pages/ForgotPassword";
+import { ResetPassword } from "./pages/ResetPassword";
 import { PublicMenu } from "./pages/PublicMenu";
 
 import AuthCallback from "./pages/auth/AuthCallback";
@@ -22,6 +23,9 @@ function App() {
           <Route path="/register" element={<Register />} />
 
           <Route path="/forgot-password" element={<ForgotPassword />} />
+
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
 
           <Route path="/explore" element={<PublicMenu />} />
 
