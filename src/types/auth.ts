@@ -17,3 +17,9 @@ export interface RegisterRequest {
 export interface ForgotPasswordRequest {
   email: string;
 }
+
+export interface ResetPasswordRequest {
+  token: string;
+  password?: string;
+  new_password?: string;
+}
