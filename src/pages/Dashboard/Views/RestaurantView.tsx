@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -10,13 +11,15 @@ import {
   Loader2,
   CheckCircle2,
   Phone,
-  Calendar
+  Calendar,
+  BookOpen
 } from "lucide-react";
 import { listRestaurants, createRestaurant } from "../../../services/restaurant.service";
 import type { RestaurantResponse, RestaurantCreate } from "../../../types/restaurant";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
 
 export const RestaurantView: React.FC = () => {
+  const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<RestaurantResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -105,6 +108,14 @@ export const RestaurantView: React.FC = () => {
               className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
             />
           </div>
+
+          <button
+            onClick={() => navigate('/explore')}
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 glass-capsule border border-white/10 hover:border-accent-light/50 text-text-primary-light dark:text-text-primary-dark rounded-2xl font-bold transition-all active:scale-[0.98]"
+          >
+            <BookOpen size={20} className="text-accent-light" />
+            Voir les menus
+          </button>
 
           <button
             onClick={() => setIsModalOpen(true)}
