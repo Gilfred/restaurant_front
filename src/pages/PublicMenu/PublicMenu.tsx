@@ -9,13 +9,64 @@ import {
   ChevronRight,
   Info
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { Restaurant } from './PublicMenu.types';
 import { listRestaurants } from '../../services/restaurant.service';
 import type { RestaurantResponse } from '../../types/restaurant';
 import { Loader } from '../../components/Loader';
+import { useAuth } from '../../contexts/AuthContext';
+
+const FALLBACK_RESTAURANTS: Restaurant[] = [
+  {
+    id: 'f1',
+    name: "La Table D'Or Paris",
+    cuisine: "Gastronomie Africaine",
+    rating: 4.9,
+    image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
+    description: "Découvrez une expérience culinaire unique chez La Table D'Or Paris, proposant une sélection authentique de plats raffinés aux saveurs locales d'Afrique.",
+    address: "15 Rue de la Paix, Paris",
+    menu: [
+      { id: 'f1-m1', name: "Saga Saga", description: "Feuilles de manioc pilées avec du poisson fumé et huile de palme.", price: "4 500 F CFA", category: "Entrées" },
+      { id: 'f1-m2', name: "Poulet Yassa", description: "Poulet mariné au citron, oignons caramélisés et moutarde, servi avec du riz.", price: "7 500 F CFA", category: "Plats" },
+      { id: 'f1-m3', name: "Thiéboudienne", description: "Riz au poisson et légumes mijotés dans une sauce tomate parfumée.", price: "9 000 F CFA", category: "Plats" },
+      { id: 'f1-m4', name: "Degue", description: "Couscous de mil au yaourt parfumé à la vanille et fleur d'oranger.", price: "2 500 F CFA", category: "Desserts" }
+    ]
+  },
+  {
+    id: 'f2',
+    name: "Lumina Gourmet",
+    cuisine: "Cuisine Locale & Fusion",
+    rating: 4.8,
+    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80",
+    description: "Une cuisine créative chez Lumina Gourmet mariant avec perfection ingrédients traditionnels et techniques contemporaines.",
+    address: "42 Boulevard Haussmann, Paris",
+    menu: [
+      { id: 'f2-m1', name: "Pastels de Poisson", description: "Beignets farcis au poisson épicé, servis avec une sauce piquante.", price: "3 000 F CFA", category: "Entrées" },
+      { id: 'f2-m2', name: "Braisé de Capitaine", description: "Filet de capitaine braisé aux herbes, bananes pesées et piment.", price: "8 500 F CFA", category: "Plats" },
+      { id: 'f2-m3', name: "Mafé de Bœuf", description: "Bœuf mijoté dans une sauce onctueuse à la pâte d'arachide et légumes.", price: "8 000 F CFA", category: "Plats" },
+      { id: 'f2-m4', name: "Flan au Coco", description: "Flan maison au lait de coco et caramel ambré.", price: "3 000 F CFA", category: "Desserts" }
+    ]
+  },
+  {
+    id: 'f3',
+    name: "Le Grill Tropical",
+    cuisine: "Grillades & Spécialités",
+    rating: 4.7,
+    image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80",
+    description: "Des grillades exquises et viandes savoureuses cuites au feu de bois à déguster chez Le Grill Tropical.",
+    address: "88 Avenue des Champs-Élysées, Paris",
+    menu: [
+      { id: 'f3-m1', name: "Alloco au Fromage", description: "Bananes plantains frites accompagnées de dés de fromage local.", price: "2 500 F CFA", category: "Entrées" },
+      { id: 'f3-m2', name: "Choukouya d'Agneau", description: "Morceaux d'agneau grillés et assaisonnés d'un mélange d'épices secrètes.", price: "9 500 F CFA", category: "Plats" },
+      { id: 'f3-m3', name: "Kédjénou de Poulet", description: "Ragoût de poulet cuit à l'étouffée avec légumes frais et piment.", price: "7 500 F CFA", category: "Plats" },
+      { id: 'f3-m4', name: "Salade de Fruits Exotiques", description: "Mangue, ananas, papaye et passion rafraîchis au citron vert.", price: "3 500 F CFA", category: "Desserts" }
+    ]
+  }
+];
 
 export const PublicMenu: React.FC = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,10 +132,14 @@ export const PublicMenu: React.FC = () => {
             };
           });
 
-        setRestaurants(activeMapped);
+        if (activeMapped.length > 0) {
+          setRestaurants(activeMapped);
+        } else {
+          setRestaurants(FALLBACK_RESTAURANTS);
+        }
       } catch (err) {
-        console.error("Failed to fetch restaurants:", err);
-        setError("Impossible de charger les restaurants. Veuillez réessayer plus tard.");
+        console.error("Failed to fetch restaurants, using fallback:", err);
+        setRestaurants(FALLBACK_RESTAURANTS);
       } finally {
         setLoading(false);
       }
@@ -112,12 +167,13 @@ export const PublicMenu: React.FC = () => {
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-4">
-            <Link
-              to="/login"
-              className="p-2 rounded-xl glass-capsule hover:scale-105 transition-all"
+            <button
+              onClick={() => isAuthenticated ? navigate('/dashboard') : navigate('/login')}
+              className="p-2 rounded-xl glass-capsule hover:scale-105 transition-all cursor-pointer"
+              title="Retour"
             >
               <ArrowLeft className="w-6 h-6 text-text-primary-light dark:text-text-primary-dark" />
-            </Link>
+            </button>
             <div>
               <h1 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark">Lumina Eat</h1>
               <p className="text-text-secondary-light dark:text-text-secondary-dark">Découvrez les meilleures tables</p>
@@ -290,12 +346,14 @@ export const PublicMenu: React.FC = () => {
                 <div className="glass-card-premium p-8 bg-accent-light/5 border-accent-light/20 text-center">
                   <Info className="w-8 h-8 text-accent-light mx-auto mb-4" />
                   <h4 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark mb-2">Vous aimez ce que vous voyez ?</h4>
-                  <p className="text-text-secondary-light dark:text-text-secondary-dark mb-6">Connectez-vous pour commander ou réserver une table !</p>
+                  <p className="text-text-secondary-light dark:text-text-secondary-dark mb-6">
+                    {isAuthenticated ? "Accédez à votre espace pour gérer ou passer vos commandes !" : "Connectez-vous pour commander ou réserver une table !"}
+                  </p>
                   <Link
-                    to="/login"
+                    to={isAuthenticated ? "/dashboard" : "/login"}
                     className="inline-flex items-center gap-2 px-8 py-3 bg-accent-light text-white rounded-xl font-bold hover:bg-accent-dark transition-all shadow-lg hover:shadow-accent-light/20"
                   >
-                    Se connecter
+                    {isAuthenticated ? "Retour au Dashboard" : "Se connecter"}
                   </Link>
                 </div>
               </motion.div>

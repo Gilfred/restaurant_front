@@ -25,7 +25,8 @@ import {
   Salad,
   List,
   CookingPot,
-  Scale
+  Scale,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -51,6 +52,7 @@ const menuItems: MenuItem[] = [
     id: 'resto',
     children: [
       { id: 'resto-restaurants', label: 'Restaurants' },
+      { id: 'resto-menu', label: 'Voir les menus' },
       { id: 'resto-inactive', label: 'Inactifs' },
       { id: 'resto-history', label: 'Historique d\'activation' },
       { id: 'resto-staff', label: 'Personnel' },
@@ -150,6 +152,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     switch (id) {
       case 'resto-restaurants':
         return <PlusCircle size={16} />;
+      case 'resto-menu':
+        return <BookOpen size={16} />;
       case 'resto-inactive':
         return <EyeOff size={16} />;
       case 'resto-history':

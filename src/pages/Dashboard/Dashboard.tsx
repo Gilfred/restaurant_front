@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
 import { Sidebar } from '../../components/Sidebar';
 import { Loader } from '../../components/Loader';
 import { Topbar } from '../../components/Topbar';
@@ -59,6 +59,7 @@ const item = {
 };
 
 export const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
 
@@ -67,19 +68,27 @@ export const Dashboard: React.FC = () => {
   const [isChangingPage, setIsChangingPage] = useState(false);
 
   const setActiveMenuId = (id: string) => {
+    if (id === 'resto-menu') {
+      navigate('/explore');
+      return;
+    }
     if (id !== activeMenuId) {
       setSearchParams({ page: id });
     }
   };
 
   useEffect(() => {
+    if (activeMenuId === 'resto-menu') {
+      navigate('/explore', { replace: true });
+      return;
+    }
     setIsChangingPage(true);
     const timer = setTimeout(() => {
       setIsChangingPage(false);
     }, 450);
 
     return () => clearTimeout(timer);
-  }, [activeMenuId]);
+  }, [activeMenuId, navigate]);
 
   const renderContent = () => {
     switch (activeMenuId) {
@@ -156,6 +165,9 @@ export const Dashboard: React.FC = () => {
             <RestaurantView />
           </motion.div>
         );
+
+      case 'resto-menu':
+        return <Navigate to="/explore" replace />;
 
       case 'resto-inactive':
         return (
