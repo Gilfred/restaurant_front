@@ -47,6 +47,15 @@ export const OrdersView: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Check if current user is a serveuse/serveur
+  const isServeuse = Boolean(
+    user?.roles?.some(
+      (r) =>
+        r.name.toLowerCase().includes("serveu") ||
+        r.name.toLowerCase().includes("waiter")
+    ) || activeTab === "me"
+  );
+
   // Modal create states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -330,7 +339,7 @@ export const OrdersView: React.FC = () => {
             Gestion des Commandes
           </h2>
           <p className="text-text-secondary-light dark:text-text-secondary-dark mt-1">
-            Consultez, créez et suivez l'état des commandes de votre établissement.
+            Consultez et suivez l'état des commandes de votre établissement.
           </p>
         </div>
 
@@ -372,13 +381,15 @@ export const OrdersView: React.FC = () => {
             />
           </div>
 
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-xs transition-all shadow-lg hover:shadow-accent-light/20 active:scale-[0.98]"
-          >
-            <Plus size={18} />
-            Nouvelle Commande
-          </button>
+          {!isServeuse && (
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-xs transition-all shadow-lg hover:shadow-accent-light/20 active:scale-[0.98]"
+            >
+              <Plus size={18} />
+              Nouvelle Commande
+            </button>
+          )}
         </div>
       </div>
 
@@ -440,20 +451,24 @@ export const OrdersView: React.FC = () => {
                       >
                         <Eye size={16} />
                       </button>
-                      <button
-                        onClick={() => openEditModal(cmd)}
-                        className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-text-secondary-light hover:text-blue-400 transition-colors"
-                        title="Modifier"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCommande(cmd.id, cmd.numeroCommande)}
-                        className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-text-secondary-light hover:text-red-400 transition-colors"
-                        title="Supprimer"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {!isServeuse && (
+                        <>
+                          <button
+                            onClick={() => openEditModal(cmd)}
+                            className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-text-secondary-light hover:text-blue-400 transition-colors"
+                            title="Modifier"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCommande(cmd.id, cmd.numeroCommande)}
+                            className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-text-secondary-light hover:text-red-400 transition-colors"
+                            title="Supprimer"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -473,7 +488,7 @@ export const OrdersView: React.FC = () => {
 
       {/* Create Commande Modal */}
       <AnimatePresence>
-        {isCreateOpen && (
+        {isCreateOpen && !isServeuse && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -674,7 +689,7 @@ export const OrdersView: React.FC = () => {
 
       {/* Edit Commande Modal */}
       <AnimatePresence>
-        {isEditOpen && selectedCommande && (
+        {isEditOpen && selectedCommande && !isServeuse && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
