@@ -139,6 +139,7 @@ export const PublicMenu: React.FC = () => {
         }
       } catch (err) {
         console.error("Failed to fetch restaurants, using fallback:", err);
+        setError("Impossible de charger la liste depuis le serveur. Mode secours actif.");
         setRestaurants(FALLBACK_RESTAURANTS);
       } finally {
         setLoading(false);
