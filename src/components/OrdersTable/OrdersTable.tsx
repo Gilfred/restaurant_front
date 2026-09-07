@@ -18,12 +18,21 @@ const statusStyles: Record<Status, string> = {
   'Annulée': 'bg-danger-light/10 text-danger-light dark:bg-danger-dark/10 dark:text-danger-dark',
 };
 
-export const OrdersTable: React.FC = () => {
+interface OrdersTableProps {
+  onSeeAll?: () => void;
+}
+
+export const OrdersTable: React.FC<OrdersTableProps> = ({ onSeeAll }) => {
   return (
     <div className="glass-card-premium overflow-hidden">
       <div className="p-6 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark tracking-wide">Dernières Commandes</h3>
-        <button className="text-sm font-medium text-accent-light dark:text-accent-dark hover:underline transition-colors">Voir tout</button>
+        <button
+          onClick={onSeeAll}
+          className="text-sm font-medium text-accent-light dark:text-accent-dark hover:underline transition-colors cursor-pointer"
+        >
+          Voir tout
+        </button>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left">

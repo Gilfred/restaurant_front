@@ -26,7 +26,8 @@ import {
   List,
   CookingPot,
   Scale,
-  BookOpen
+  BookOpen,
+  Wine
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useNavigate } from 'react-router-dom';
@@ -43,7 +44,8 @@ const menuItems: MenuItem[] = [
     label: 'Cuisine',
     id: 'kitchen',
     children: [
-      { id: 'cuisine-appro', label: 'Approvisionnements' }
+      { id: 'cuisine-appro', label: 'Appro Condiments' },
+      { id: 'cuisine-appro-boisson', label: 'Appro Boissons' }
     ]
   },
   {
@@ -176,6 +178,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <Scale size={16} />;
       case 'cuisine-appro':
         return <CookingPot size={16} />;
+      case 'cuisine-appro-boisson':
+        return <Wine size={16} />;
       default:
         return null;
     }

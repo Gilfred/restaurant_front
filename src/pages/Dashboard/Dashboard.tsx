@@ -26,6 +26,8 @@ import { EmployeesView } from './Views/EmployeesView';
 import { CondimentsView } from './Views/CondimentsView';
 import { ApproView } from './Views/ApproView';
 import { UnitesView } from './Views/UnitesView';
+import { OrdersView } from './Views/OrdersView';
+import { ApproBoissonView } from './Views/ApproBoissonView';
 
 import type { Stat, BestSellingProduct } from './Dashboard.types';
 
@@ -146,7 +148,7 @@ export const Dashboard: React.FC = () => {
             {/* Table and Activity Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-8">
               <motion.div variants={item} className="lg:col-span-2">
-                <OrdersTable />
+                <OrdersTable onSeeAll={() => setActiveMenuId('orders')} />
               </motion.div>
               <motion.div variants={item}>
                 <RecentActivity />
@@ -279,6 +281,17 @@ export const Dashboard: React.FC = () => {
           </motion.div>
         );
 
+      case 'orders':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-8"
+          >
+            <OrdersView />
+          </motion.div>
+        );
+
       case 'cuisine-appro':
         return (
           <motion.div
@@ -287,6 +300,17 @@ export const Dashboard: React.FC = () => {
             className="p-4 sm:p-8"
           >
             <ApproView />
+          </motion.div>
+        );
+
+      case 'cuisine-appro-boisson':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-8"
+          >
+            <ApproBoissonView />
           </motion.div>
         );
 
