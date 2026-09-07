@@ -11,7 +11,9 @@ import {
   Trash2,
   Edit2,
   Sparkles,
-  Info
+  Info,
+  UtensilsCrossed,
+  Wine
 } from "lucide-react";
 import {
   listCommandes,
@@ -30,9 +32,11 @@ import type {
 } from "../../../types/commande";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
+import { useAuth } from "../../../contexts/AuthContext";
 import { cn } from "../../../utils/cn";
 
 export const OrdersView: React.FC = () => {
+  const { user } = useAuth();
   const [commandes, setCommandes] = useState<CommandeResponse[]>([]);
   const [waiters, setWaiters] = useState<WaiterResponse[]>([]);
   const [activeTab, setActiveTab] = useState<"all" | "me">("all");
@@ -63,21 +67,49 @@ export const OrdersView: React.FC = () => {
       setLoading(true);
       setIsDenied(false);
 
-      const [cmdPromise, waiterPromise] = await Promise.allSettled([
-        activeTab === "all" ? listCommandes() : listMyCommandes(),
-        listWaiters()
-      ]);
-
-      if (cmdPromise.status === "fulfilled") {
-        setCommandes(cmdPromise.value.data || []);
-      } else {
-        if (cmdPromise.reason?.response?.status === 403 || cmdPromise.reason?.response?.status === 401) {
-          setIsDenied(true);
+      if (activeTab === "all") {
+        try {
+          const [cmdRes, waiterRes] = await Promise.all([
+            listCommandes(),
+            listWaiters().catch(() => ({ data: [] }))
+          ]);
+          setCommandes(cmdRes.data || []);
+          setWaiters(waiterRes.data || []);
+        } catch (err: any) {
+          // If GET /commandes/ fails with 403 (e.g. user is a serveuse with no admin/resto-wide access), fallback automatically to GET /commandes/me
+          if (err.response?.status === 403 || err.response?.status === 401) {
+            try {
+              const [myCmdRes, waiterRes] = await Promise.all([
+                listMyCommandes(),
+                listWaiters().catch(() => ({ data: [] }))
+              ]);
+              setCommandes(myCmdRes.data || []);
+              setWaiters(waiterRes.data || []);
+              setActiveTab("me");
+            } catch (fallbackErr: any) {
+              if (fallbackErr.response?.status === 403 || fallbackErr.response?.status === 401) {
+                setIsDenied(true);
+              }
+            }
+          } else {
+            setError("Impossible de charger les commandes.");
+          }
         }
-      }
-
-      if (waiterPromise.status === "fulfilled") {
-        setWaiters(waiterPromise.value.data || []);
+      } else {
+        try {
+          const [myCmdRes, waiterRes] = await Promise.all([
+            listMyCommandes(),
+            listWaiters().catch(() => ({ data: [] }))
+          ]);
+          setCommandes(myCmdRes.data || []);
+          setWaiters(waiterRes.data || []);
+        } catch (err: any) {
+          if (err.response?.status === 403 || err.response?.status === 401) {
+            setIsDenied(true);
+          } else {
+            setError("Impossible de charger vos commandes.");
+          }
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -89,6 +121,13 @@ export const OrdersView: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [activeTab]);
+
+  // Set default selected user ID when modal opens or user loads
+  useEffect(() => {
+    if (user?.id && !selectedUserId) {
+      setSelectedUserId(String(user.id));
+    }
+  }, [user, selectedUserId]);
 
   const handleCreateArticleChange = (index: number, field: keyof CommandeArticleCreate, value: any) => {
     const updated = [...articles];
@@ -110,7 +149,8 @@ export const OrdersView: React.FC = () => {
     setSuccess(null);
     setError(null);
 
-    if (!selectedUserId) {
+    const targetUserId = selectedUserId || String(user?.id || "");
+    if (!targetUserId) {
       setError("Veuillez sélectionner un(e) serveuse/serveur.");
       return;
     }
@@ -125,12 +165,11 @@ export const OrdersView: React.FC = () => {
     setSubmitting(true);
     try {
       await createCommande({
-        userId: selectedUserId,
+        userId: targetUserId,
         articles: cleanedArticles
       });
       setSuccess("Commande créée avec succès !");
       setIsCreateOpen(false);
-      setSelectedUserId("");
       setArticles([{ boissonId: "", repasId: "", qte: 1 }]);
       fetchData();
     } catch (err: any) {
@@ -215,12 +254,46 @@ export const OrdersView: React.FC = () => {
     }
   };
 
+  const renderArticlesSummary = (cmdArticles?: CommandeArticle[]) => {
+    if (!cmdArticles || cmdArticles.length === 0) {
+      return <span className="text-text-secondary-light dark:text-text-secondary-dark italic">Aucun article</span>;
+    }
+
+    return (
+      <div className="flex flex-col gap-1 max-w-xs">
+        {cmdArticles.map((art, idx) => {
+          const name = art.boisson?.nomBoisson || art.repas?.nomRepas || "Article";
+          const isBoisson = !!art.boisson?.nomBoisson;
+          return (
+            <div key={idx} className="flex items-center gap-1.5 text-xs">
+              {isBoisson ? (
+                <Wine size={12} className="text-amber-400 shrink-0" />
+              ) : (
+                <UtensilsCrossed size={12} className="text-accent-light shrink-0" />
+              )}
+              <span className="font-semibold text-text-primary-light dark:text-text-primary-dark truncate">
+                {name}
+              </span>
+              <span className="font-extrabold text-accent-light text-[10px] bg-accent-light/10 px-1.5 py-0.5 rounded-md ml-auto shrink-0">
+                x{art.qte}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const filteredCommandes = commandes.filter(cmd => {
     const term = search.toLowerCase();
     const num = cmd.numeroCommande?.toLowerCase() || "";
     const userName = cmd.user?.name?.toLowerCase() || "";
     const statut = cmd.statut?.toLowerCase() || "";
-    return num.includes(term) || userName.includes(term) || statut.includes(term);
+    const articleMatch = cmd.articles?.some(a =>
+      (a.boisson?.nomBoisson?.toLowerCase() || "").includes(term) ||
+      (a.repas?.nomRepas?.toLowerCase() || "").includes(term)
+    );
+    return num.includes(term) || userName.includes(term) || statut.includes(term) || articleMatch;
   });
 
   if (loading) {
@@ -292,7 +365,7 @@ export const OrdersView: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary-light group-focus-within:text-accent-light transition-colors" />
             <input
               type="text"
-              placeholder="Rechercher..."
+              placeholder="Rechercher (N°, article...)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-xs font-medium"
@@ -330,7 +403,7 @@ export const OrdersView: React.FC = () => {
               <tr className="border-b border-black/5 dark:border-white/5">
                 <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">N° Commande</th>
                 <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">Serveur / Serveuse</th>
-                <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">Articles</th>
+                <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">Articles Commandés (Pris)</th>
                 <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">Total</th>
                 <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">Statut</th>
                 <th className="px-6 py-4 text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">Date</th>
@@ -346,8 +419,8 @@ export const OrdersView: React.FC = () => {
                   <td className="px-6 py-4 text-sm font-semibold text-text-primary-light dark:text-text-primary-dark">
                     {cmd.user?.name || "N/A"}
                   </td>
-                  <td className="px-6 py-4 text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                    {cmd.articles?.length || 0} article(s)
+                  <td className="px-6 py-4">
+                    {renderArticlesSummary(cmd.articles)}
                   </td>
                   <td className="px-6 py-4 text-sm font-extrabold text-success-light">
                     {cmd.total ? `${cmd.total.toLocaleString()} F CFA` : "0 F CFA"}
@@ -424,19 +497,28 @@ export const OrdersView: React.FC = () => {
               <form onSubmit={handleCreateCommande} className="space-y-5">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">Serveur / Serveuse</label>
-                  <select
-                    value={selectedUserId}
-                    onChange={(e) => setSelectedUserId(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
-                  >
-                    <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">Sélectionner le membre de l'équipe...</option>
-                    {waiters.map(w => (
-                      <option key={w.id} value={w.id} className="dark:bg-slate-900 text-text-primary-light font-semibold">
-                        {w.name} ({w.email})
-                      </option>
-                    ))}
-                  </select>
+                  {waiters.length > 0 ? (
+                    <select
+                      value={selectedUserId || String(user?.id || "")}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
+                    >
+                      <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">Sélectionner le membre de l'équipe...</option>
+                      {waiters.map(w => (
+                        <option key={w.id} value={w.id} className="dark:bg-slate-900 text-text-primary-light font-semibold">
+                          {w.name} ({w.email})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      readOnly
+                      value={user ? `${user.name} (${user.email})` : "Utilisateur connecté"}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-text-primary-light dark:text-text-primary-dark text-sm font-semibold opacity-80 cursor-not-allowed"
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-3">
@@ -456,14 +538,14 @@ export const OrdersView: React.FC = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="text"
-                          placeholder="ID Boisson (optionnel)"
+                          placeholder="ID Boisson (ex: UUID)"
                           value={art.boissonId || ""}
                           onChange={(e) => handleCreateArticleChange(idx, "boissonId", e.target.value)}
                           className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-text-primary-light dark:text-text-primary-dark"
                         />
                         <input
                           type="text"
-                          placeholder="ID Repas (optionnel)"
+                          placeholder="ID Repas (ex: UUID)"
                           value={art.repasId || ""}
                           onChange={(e) => handleCreateArticleChange(idx, "repasId", e.target.value)}
                           className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-text-primary-light dark:text-text-primary-dark"
@@ -554,14 +636,19 @@ export const OrdersView: React.FC = () => {
                 </div>
 
                 <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-2">
-                  <span className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest block">Articles</span>
+                  <span className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest block">Articles Commandés</span>
                   {selectedCommande.articles?.map((art: CommandeArticle, i: number) => (
                     <div key={i} className="flex justify-between items-center text-xs border-b border-black/5 dark:border-white/5 pb-2 last:border-0 last:pb-0">
-                      <div>
+                      <div className="flex items-center gap-2">
+                        {art.boisson?.nomBoisson ? (
+                          <Wine size={14} className="text-amber-400" />
+                        ) : (
+                          <UtensilsCrossed size={14} className="text-accent-light" />
+                        )}
                         <span className="font-bold text-text-primary-light dark:text-text-primary-dark">
                           {art.boisson?.nomBoisson || art.repas?.nomRepas || "Article"}
                         </span>
-                        <span className="text-text-secondary-light ml-2">x{art.qte}</span>
+                        <span className="text-text-secondary-light font-semibold">x{art.qte}</span>
                       </div>
                       <span className="font-semibold text-text-primary-light dark:text-text-primary-dark">{art.sousTotal} F CFA</span>
                     </div>
