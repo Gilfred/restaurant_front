@@ -19,14 +19,16 @@ import {
   createApproBoisson,
   getApproBoisson,
   updateApproBoisson,
-  deleteApproBoisson
-} from "../../../services/approBoisson.service";
-import type { ApproBoissonResponse } from "../../../types/boisson";
+  deleteApproBoisson,
+  listBoissons
+} from "../../../services";
+import type { ApproBoissonResponse, BoissonResponse } from "../../../types/boisson";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
 
 export const ApproBoissonView: React.FC = () => {
   const [appros, setAppros] = useState<ApproBoissonResponse[]>([]);
+  const [boissons, setBoissons] = useState<BoissonResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDenied, setIsDenied] = useState(false);
   const [search, setSearch] = useState("");
@@ -55,8 +57,12 @@ export const ApproBoissonView: React.FC = () => {
     try {
       setLoading(true);
       setIsDenied(false);
-      const res = await listApproBoissons();
-      setAppros(res.data || []);
+      const [approsRes, boissonsRes] = await Promise.all([
+        listApproBoissons(),
+        listBoissons().catch(() => ({ data: [] }))
+      ]);
+      setAppros(approsRes.data || []);
+      setBoissons(boissonsRes.data || []);
     } catch (err: any) {
       console.error(err);
       if (err.response?.status === 403 || err.response?.status === 401) {
@@ -70,6 +76,17 @@ export const ApproBoissonView: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const getBoissonName = (appro: ApproBoissonResponse) => {
+    if (appro.boisson?.nomBoisson) {
+      return appro.boisson.nomBoisson;
+    }
+    const found = boissons.find((b) => b.id === appro.boissonId);
+    if (found?.nomBoisson) {
+      return found.nomBoisson;
+    }
+    return `Boisson (${appro.boissonId})`;
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,11 +176,12 @@ export const ApproBoissonView: React.FC = () => {
     }
   };
 
-  const filtered = appros.filter(a => {
+  const filtered = appros.filter((a) => {
     const term = search.toLowerCase();
+    const bName = getBoissonName(a).toLowerCase();
     const bId = a.boissonId?.toLowerCase() || "";
     const cId = a.casierId?.toLowerCase() || "";
-    return bId.includes(term) || cId.includes(term);
+    return bName.includes(term) || bId.includes(term) || cId.includes(term);
   });
 
   if (loading) {
@@ -252,8 +270,8 @@ export const ApproBoissonView: React.FC = () => {
 
             <div className="p-6 flex-1 flex flex-col justify-between">
               <div>
-                <h3 className="text-sm font-mono font-bold text-accent-light mb-4 line-clamp-1">
-                  Boisson ID: {appro.boissonId}
+                <h3 className="text-base font-extrabold text-text-primary-light dark:text-text-primary-dark mb-1 line-clamp-1">
+                  {getBoissonName(appro)}
                 </h3>
 
                 <div className="space-y-3 pt-4 border-t border-black/5 dark:border-white/5 text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium">
@@ -332,15 +350,31 @@ export const ApproBoissonView: React.FC = () => {
 
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">ID Boisson (UUID)</label>
-                  <input
-                    type="text"
-                    value={boissonId}
-                    onChange={(e) => setBoissonId(e.target.value)}
-                    required
-                    placeholder="3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-xs font-mono font-semibold"
-                  />
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">Boisson</label>
+                  {boissons.length > 0 ? (
+                    <select
+                      value={boissonId}
+                      onChange={(e) => setBoissonId(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
+                    >
+                      <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">Sélectionner une boisson...</option>
+                      {boissons.map((b) => (
+                        <option key={b.id} value={b.id} className="dark:bg-slate-900 font-semibold text-text-primary-light">
+                          {b.nomBoisson}{b.contenance ? ` (${b.contenance})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={boissonId}
+                      onChange={(e) => setBoissonId(e.target.value)}
+                      required
+                      placeholder="ID Boisson (ex: UUID)"
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-xs font-mono font-semibold"
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -428,13 +462,13 @@ export const ApproBoissonView: React.FC = () => {
 
               <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-1">
-                  <span className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest block">ID Approvisionnement</span>
-                  <span className="text-xs font-mono font-bold text-accent-light block select-all">{selectedAppro.id}</span>
+                  <span className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest block">Boisson</span>
+                  <span className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark block">{getBoissonName(selectedAppro)}</span>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-1">
-                  <span className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest block">ID Boisson</span>
-                  <span className="text-xs font-mono font-bold text-text-primary-light dark:text-text-primary-dark block select-all">{selectedAppro.boissonId}</span>
+                  <span className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest block">ID Approvisionnement</span>
+                  <span className="text-xs font-mono font-bold text-accent-light block select-all">{selectedAppro.id}</span>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-1">
