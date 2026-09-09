@@ -1,50 +1,72 @@
-export interface CommandeItem {
-  id?: string;
-  platId?: string;
-  boissonId?: string;
-  nom?: string;
-  quantite: number;
+export interface CommandeUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface CommandeBoissonDetail {
+  id: string;
+  nomBoisson?: string;
+  contenance?: string;
+  prixVente?: number;
+  stock?: number;
+  restaurantId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CommandeRepasDetail {
+  id: string;
+  nomRepas?: string;
   prix?: number;
+  restaurantId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CommandeArticle {
+  id: string;
+  boissonId?: string | null;
+  repasId?: string | null;
+  qte: number;
+  prixUnitaire: number;
+  sousTotal: number;
+  isActive: boolean;
+  boisson?: CommandeBoissonDetail | null;
+  repas?: CommandeRepasDetail | null;
+}
+
+export interface CommandeArticleCreate {
+  boissonId?: string | null;
+  repasId?: string | null;
+  qte: number;
 }
 
 export interface CommandeCreate {
-  tableId?: string;
-  serveuseId?: string;
-  items?: CommandeItem[];
-  total?: number;
-  statut?: string;
-  notes?: string;
-  [key: string]: unknown;
+  userId: string;
+  articles: CommandeArticleCreate[];
 }
 
 export interface CommandeUpdate {
-  tableId?: string;
-  serveuseId?: string;
-  items?: CommandeItem[];
-  total?: number;
   statut?: string;
-  notes?: string;
-  [key: string]: unknown;
+  total?: number;
 }
 
 export interface CommandeResponse {
   id: string;
-  restaurantId?: string;
-  tableId?: string;
-  serveuseId?: string;
-  items?: CommandeItem[];
-  total?: number;
-  statut?: string;
-  notes?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  [key: string]: unknown;
+  restaurantId: string;
+  numeroCommande: string;
+  userId: string;
+  total: number;
+  statut: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: CommandeUser;
+  articles?: CommandeArticle[];
 }
 
 export interface WaiterResponse {
   id: string;
-  name?: string;
-  email?: string;
-  role?: string;
-  [key: string]: unknown;
+  name: string;
+  email: string;
 }
