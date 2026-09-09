@@ -13,7 +13,8 @@ import {
   Sparkles,
   Info,
   UtensilsCrossed,
-  Wine
+  Wine,
+  ChevronDown
 } from "lucide-react";
 import {
   listCommandes,
@@ -44,6 +45,167 @@ interface OrderArticleForm {
   repasId: string | null;
   qte: number;
 }
+
+interface ProductSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  boissons: BoissonResponse[];
+  repasList: RepasResponse[];
+  loading?: boolean;
+}
+
+const ProductSelect: React.FC<ProductSelectProps> = ({
+  value,
+  onChange,
+  boissons,
+  repasList,
+  loading
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  let selectedLabel = "-- Sélectionner un produit --";
+  let selectedSub = "";
+  if (value.startsWith("boisson:")) {
+    const id = value.replace("boisson:", "");
+    const b = boissons.find((item) => item.id === id);
+    if (b) {
+      selectedLabel = b.nomBoisson;
+      selectedSub = `${b.contenance ? b.contenance + " - " : ""}${b.prixVente !== undefined ? b.prixVente.toLocaleString() + " F CFA" : ""}`;
+    }
+  } else if (value.startsWith("repas:")) {
+    const id = value.replace("repas:", "");
+    const r = repasList.find((item) => item.id === id);
+    if (r) {
+      selectedLabel = r.nomRepas;
+      selectedSub = `${r.prix !== undefined ? r.prix.toLocaleString() + " F CFA" : ""}`;
+    }
+  }
+
+  const filteredBoissons = boissons.filter((b) =>
+    b.nomBoisson.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (b.contenance && b.contenance.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const filteredRepas = repasList.filter((r) =>
+    r.nomRepas.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/10 rounded-xl text-left text-xs text-slate-900 dark:text-slate-100 shadow-sm hover:border-accent-light focus:outline-none focus:ring-2 focus:ring-accent-light/50 transition-all"
+      >
+        <span className="truncate font-semibold">
+          {selectedLabel}
+          {selectedSub && <span className="ml-2 text-slate-500 dark:text-slate-400 font-normal">({selectedSub})</span>}
+        </span>
+        <ChevronDown size={16} className={cn("text-slate-400 transition-transform duration-200 shrink-0 ml-1", isOpen && "rotate-180")} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-[110] bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/15 rounded-2xl shadow-2xl p-2.5 max-h-64 flex flex-col space-y-2">
+          <div className="relative shrink-0">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              autoFocus
+              placeholder="Rechercher un produit..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-8 pr-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-medium rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-accent-light"
+            />
+          </div>
+
+          <div className="overflow-y-auto space-y-2 flex-1 pr-1">
+            {loading ? (
+              <div className="p-3 text-center text-xs text-slate-500">Chargement...</div>
+            ) : filteredBoissons.length === 0 && filteredRepas.length === 0 ? (
+              <div className="p-3 text-center text-xs text-slate-500 dark:text-slate-400">Aucun produit trouvé</div>
+            ) : (
+              <>
+                {filteredBoissons.length > 0 && (
+                  <div>
+                    <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <Wine size={12} className="text-amber-500" /> Boissons
+                    </div>
+                    {filteredBoissons.map((b) => (
+                      <button
+                        key={`boisson-${b.id}`}
+                        type="button"
+                        onClick={() => {
+                          onChange(`boisson:${b.id}`);
+                          setIsOpen(false);
+                          setSearchTerm("");
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-colors flex items-center justify-between",
+                          value === `boisson:${b.id}`
+                            ? "bg-accent-light/15 text-accent-light font-bold"
+                            : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        )}
+                      >
+                        <span className="truncate">
+                          {b.nomBoisson} {b.contenance ? `(${b.contenance})` : ""}
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold shrink-0 ml-2">
+                          {b.prixVente !== undefined ? `${b.prixVente.toLocaleString()} F CFA` : ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {filteredRepas.length > 0 && (
+                  <div>
+                    <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <UtensilsCrossed size={12} className="text-accent-light" /> Repas
+                    </div>
+                    {filteredRepas.map((r) => (
+                      <button
+                        key={`repas-${r.id}`}
+                        type="button"
+                        onClick={() => {
+                          onChange(`repas:${r.id}`);
+                          setIsOpen(false);
+                          setSearchTerm("");
+                        }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-colors flex items-center justify-between",
+                          value === `repas:${r.id}`
+                            ? "bg-accent-light/15 text-accent-light font-bold"
+                            : "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        )}
+                      >
+                        <span className="truncate">{r.nomRepas}</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold shrink-0 ml-2">
+                          {r.prix !== undefined ? `${r.prix.toLocaleString()} F CFA` : ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const OrdersView: React.FC = () => {
   const { user } = useAuth();
@@ -617,13 +779,6 @@ export const OrdersView: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">Articles de la commande</label>
-                    <button
-                      type="button"
-                      onClick={addArticleRow}
-                      className="text-xs font-bold text-accent-light hover:underline flex items-center gap-1"
-                    >
-                      <Plus size={14} /> Ajouter un article
-                    </button>
                   </div>
 
                   {articles.map((art, idx) => {
@@ -632,34 +787,13 @@ export const OrdersView: React.FC = () => {
                       <div key={idx} className="p-3.5 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 rounded-2xl space-y-2 relative">
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                           <div className="flex-1">
-                            <select
+                            <ProductSelect
                               value={art.selectedKey}
-                              onChange={(e) => handleProductSelectChange(idx, e.target.value)}
-                              required
-                              className="w-full px-3.5 py-2.5 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-xs font-semibold"
-                            >
-                              <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">
-                                {loadingProducts ? "Chargement des produits..." : "-- Sélectionner un produit --"}
-                              </option>
-                              {boissons.length > 0 && (
-                                <optgroup label="🥤 Boissons" className="dark:bg-slate-900 text-text-primary-light font-bold">
-                                  {boissons.map((b) => (
-                                    <option key={`boisson-${b.id}`} value={`boisson:${b.id}`} className="dark:bg-slate-900 font-normal">
-                                      {b.nomBoisson}{b.contenance ? ` (${b.contenance})` : ""}{b.prixVente !== undefined ? ` - ${b.prixVente.toLocaleString()} F CFA` : ""}{b.stock !== undefined ? ` [Stock: ${b.stock}]` : ""}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                              )}
-                              {repasList.length > 0 && (
-                                <optgroup label="🍲 Repas" className="dark:bg-slate-900 text-text-primary-light font-bold">
-                                  {repasList.map((r) => (
-                                    <option key={`repas-${r.id}`} value={`repas:${r.id}`} className="dark:bg-slate-900 font-normal">
-                                      {r.nomRepas}{r.prix !== undefined ? ` - ${r.prix.toLocaleString()} F CFA` : ""}
-                                    </option>
-                                  ))}
-                                </optgroup>
-                              )}
-                            </select>
+                              onChange={(value) => handleProductSelectChange(idx, value)}
+                              boissons={boissons}
+                              repasList={repasList}
+                              loading={loadingProducts}
+                            />
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
@@ -670,7 +804,7 @@ export const OrdersView: React.FC = () => {
                               value={art.qte}
                               onChange={(e) => handleQuantityChange(idx, Number(e.target.value))}
                               required
-                              className="w-20 px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-text-primary-light dark:text-text-primary-dark text-center"
+                              className="w-20 px-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/10 rounded-xl text-xs font-bold text-slate-900 dark:text-slate-100 text-center"
                             />
                             {articles.length > 1 && (
                               <button
@@ -694,6 +828,16 @@ export const OrdersView: React.FC = () => {
                       </div>
                     );
                   })}
+
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={addArticleRow}
+                      className="w-full py-2.5 px-4 bg-accent-light/10 hover:bg-accent-light/20 border border-accent-light/30 rounded-xl text-xs font-bold text-accent-light flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      <Plus size={16} /> Ajouter un article
+                    </button>
+                  </div>
                 </div>
 
                 {calculatedTotal > 0 && (
