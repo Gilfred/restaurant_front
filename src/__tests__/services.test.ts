@@ -7,14 +7,14 @@ import {
   getCommande,
   updateCommande,
   deleteCommande,
-} from "../services/commande.service";
-import {
   listApproBoissons,
   createApproBoisson,
   getApproBoisson,
   updateApproBoisson,
   deleteApproBoisson,
-} from "../services/approBoisson.service";
+  listBoissons,
+  listRepas
+} from "../services";
 
 function assertEqual(actual: unknown, expected: unknown, message: string) {
   const actualStr = JSON.stringify(actual);
@@ -46,6 +46,17 @@ async function runTests() {
     return Promise.resolve({ data: {} }) as any;
   };
 
+  // Test Boissons & Repas Endpoints
+  await listBoissons();
+  assertEqual(lastCall.method, "GET", "listBoissons method");
+  assertEqual(lastCall.url, "/boissons/", "listBoissons url");
+  console.log("✓ GET /boissons/");
+
+  await listRepas();
+  assertEqual(lastCall.method, "GET", "listRepas method");
+  assertEqual(lastCall.url, "/repas/", "listRepas url");
+  console.log("✓ GET /repas/");
+
   // Test Commandes Endpoints
   await listCommandes();
   assertEqual(lastCall.method, "GET", "listCommandes method");
@@ -57,8 +68,8 @@ async function runTests() {
     articles: [
       {
         boissonId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-        repasId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-        qte: 1,
+        repasId: null,
+        qte: 3,
       },
     ],
   });
@@ -71,8 +82,8 @@ async function runTests() {
       articles: [
         {
           boissonId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-          repasId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-          qte: 1,
+          repasId: null,
+          qte: 3,
         },
       ],
     },
@@ -148,9 +159,10 @@ async function runTests() {
   assertEqual(lastCall.url, "/appro-boisson/appro-200", "deleteApproBoisson url");
   console.log("✓ DELETE /appro-boisson/{appro_id}");
 
-  console.log("All 12 endpoint consumption tests passed successfully!");
+  console.log("All 14 endpoint consumption tests passed successfully!");
 }
 
 runTests().catch((err) => {
   console.error("Test execution failed:", err);
+  throw err;
 });
