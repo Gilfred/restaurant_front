@@ -22,24 +22,38 @@ import {
   createCommande,
   getCommande,
   updateCommande,
-  deleteCommande
-} from "../../../services/commande.service";
+  deleteCommande,
+  listBoissons,
+  listRepas
+} from "../../../services";
 import type {
   CommandeResponse,
   WaiterResponse,
-  CommandeArticleCreate,
   CommandeArticle
 } from "../../../types/commande";
+import type { BoissonResponse } from "../../../types/boisson";
+import type { RepasResponse } from "../../../types/repas";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
 import { useAuth } from "../../../contexts/AuthContext";
 import { cn } from "../../../utils/cn";
+
+interface OrderArticleForm {
+  selectedKey: string; // "boisson:<id>" or "repas:<id>"
+  boissonId: string | null;
+  repasId: string | null;
+  qte: number;
+}
 
 export const OrdersView: React.FC = () => {
   const { user } = useAuth();
   const [commandes, setCommandes] = useState<CommandeResponse[]>([]);
   const [waiters, setWaiters] = useState<WaiterResponse[]>([]);
   const [activeTab, setActiveTab] = useState<"all" | "me">("all");
+
+  const [boissons, setBoissons] = useState<BoissonResponse[]>([]);
+  const [repasList, setRepasList] = useState<RepasResponse[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [isDenied, setIsDenied] = useState(false);
@@ -59,8 +73,8 @@ export const OrdersView: React.FC = () => {
   // Modal create states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState("");
-  const [articles, setArticles] = useState<CommandeArticleCreate[]>([
-    { boissonId: "", repasId: "", qte: 1 }
+  const [articles, setArticles] = useState<OrderArticleForm[]>([
+    { selectedKey: "", boissonId: null, repasId: null, qte: 1 }
   ]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -70,6 +84,22 @@ export const OrdersView: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editStatut, setEditStatut] = useState("pending");
   const [editTotal, setEditTotal] = useState<number>(0);
+
+  const fetchProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const [boissonsRes, repasRes] = await Promise.all([
+        listBoissons().catch(() => ({ data: [] })),
+        listRepas().catch(() => ({ data: [] }))
+      ]);
+      setBoissons(boissonsRes.data || []);
+      setRepasList(repasRes.data || []);
+    } catch (err) {
+      console.error("Erreur lors de la récupération des produits:", err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -129,6 +159,7 @@ export const OrdersView: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+    fetchProducts();
   }, [activeTab]);
 
   // Set default selected user ID when modal opens or user loads
@@ -138,20 +169,57 @@ export const OrdersView: React.FC = () => {
     }
   }, [user, selectedUserId]);
 
-  const handleCreateArticleChange = (index: number, field: keyof CommandeArticleCreate, value: any) => {
+  const handleProductSelectChange = (index: number, value: string) => {
     const updated = [...articles];
-    updated[index] = { ...updated[index], [field]: value };
+    let boissonId: string | null = null;
+    let repasId: string | null = null;
+
+    if (value.startsWith("boisson:")) {
+      boissonId = value.replace("boisson:", "");
+    } else if (value.startsWith("repas:")) {
+      repasId = value.replace("repas:", "");
+    }
+
+    updated[index] = {
+      ...updated[index],
+      selectedKey: value,
+      boissonId,
+      repasId
+    };
+    setArticles(updated);
+  };
+
+  const handleQuantityChange = (index: number, qte: number) => {
+    const updated = [...articles];
+    updated[index] = { ...updated[index], qte: Math.max(1, qte) };
     setArticles(updated);
   };
 
   const addArticleRow = () => {
-    setArticles([...articles, { boissonId: "", repasId: "", qte: 1 }]);
+    setArticles([...articles, { selectedKey: "", boissonId: null, repasId: null, qte: 1 }]);
   };
 
   const removeArticleRow = (index: number) => {
     if (articles.length === 1) return;
     setArticles(articles.filter((_, i) => i !== index));
   };
+
+  const getItemDetails = (art: OrderArticleForm) => {
+    if (art.boissonId) {
+      const b = boissons.find((item) => item.id === art.boissonId);
+      if (b) return { name: b.nomBoisson, price: b.prixVente ?? 0 };
+    }
+    if (art.repasId) {
+      const r = repasList.find((item) => item.id === art.repasId);
+      if (r) return { name: r.nomRepas, price: r.prix ?? 0 };
+    }
+    return null;
+  };
+
+  const calculatedTotal = articles.reduce((sum, art) => {
+    const details = getItemDetails(art);
+    return sum + (details ? details.price * art.qte : 0);
+  }, 0);
 
   const handleCreateCommande = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,8 +232,14 @@ export const OrdersView: React.FC = () => {
       return;
     }
 
+    const invalid = articles.some((art) => !art.boissonId && !art.repasId);
+    if (invalid) {
+      setError("Veuillez sélectionner un produit pour chaque article de la commande.");
+      return;
+    }
+
     // Clean articles payload
-    const cleanedArticles = articles.map(art => ({
+    const cleanedArticles = articles.map((art) => ({
       boissonId: art.boissonId ? art.boissonId : null,
       repasId: art.repasId ? art.repasId : null,
       qte: Number(art.qte) || 1
@@ -179,7 +253,7 @@ export const OrdersView: React.FC = () => {
       });
       setSuccess("Commande créée avec succès !");
       setIsCreateOpen(false);
-      setArticles([{ boissonId: "", repasId: "", qte: 1 }]);
+      setArticles([{ selectedKey: "", boissonId: null, repasId: null, qte: 1 }]);
       fetchData();
     } catch (err: any) {
       console.error(err);
@@ -293,14 +367,15 @@ export const OrdersView: React.FC = () => {
     );
   };
 
-  const filteredCommandes = commandes.filter(cmd => {
+  const filteredCommandes = commandes.filter((cmd) => {
     const term = search.toLowerCase();
     const num = cmd.numeroCommande?.toLowerCase() || "";
     const userName = cmd.user?.name?.toLowerCase() || "";
     const statut = cmd.statut?.toLowerCase() || "";
-    const articleMatch = cmd.articles?.some(a =>
-      (a.boisson?.nomBoisson?.toLowerCase() || "").includes(term) ||
-      (a.repas?.nomRepas?.toLowerCase() || "").includes(term)
+    const articleMatch = cmd.articles?.some(
+      (a) =>
+        (a.boisson?.nomBoisson?.toLowerCase() || "").includes(term) ||
+        (a.repas?.nomRepas?.toLowerCase() || "").includes(term)
     );
     return num.includes(term) || userName.includes(term) || statut.includes(term) || articleMatch;
   });
@@ -383,7 +458,10 @@ export const OrdersView: React.FC = () => {
 
           {!isServeuse && (
             <button
-              onClick={() => setIsCreateOpen(true)}
+              onClick={() => {
+                setIsCreateOpen(true);
+                fetchProducts();
+              }}
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-xs transition-all shadow-lg hover:shadow-accent-light/20 active:scale-[0.98]"
             >
               <Plus size={18} />
@@ -520,7 +598,7 @@ export const OrdersView: React.FC = () => {
                       className="w-full px-4 py-3 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
                     >
                       <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">Sélectionner le membre de l'équipe...</option>
-                      {waiters.map(w => (
+                      {waiters.map((w) => (
                         <option key={w.id} value={w.id} className="dark:bg-slate-900 text-text-primary-light font-semibold">
                           {w.name} ({w.email})
                         </option>
@@ -548,46 +626,82 @@ export const OrdersView: React.FC = () => {
                     </button>
                   </div>
 
-                  {articles.map((art, idx) => (
-                    <div key={idx} className="p-3 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 rounded-2xl space-y-2 relative">
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          placeholder="ID Boisson (ex: UUID)"
-                          value={art.boissonId || ""}
-                          onChange={(e) => handleCreateArticleChange(idx, "boissonId", e.target.value)}
-                          className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-text-primary-light dark:text-text-primary-dark"
-                        />
-                        <input
-                          type="text"
-                          placeholder="ID Repas (ex: UUID)"
-                          value={art.repasId || ""}
-                          onChange={(e) => handleCreateArticleChange(idx, "repasId", e.target.value)}
-                          className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-text-primary-light dark:text-text-primary-dark"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min={1}
-                          placeholder="Quantité"
-                          value={art.qte}
-                          onChange={(e) => handleCreateArticleChange(idx, "qte", Number(e.target.value))}
-                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-text-primary-light dark:text-text-primary-dark"
-                        />
-                        {articles.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeArticleRow(idx)}
-                            className="p-2 text-red-400 hover:bg-red-500/10 rounded-xl"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                  {articles.map((art, idx) => {
+                    const details = getItemDetails(art);
+                    return (
+                      <div key={idx} className="p-3.5 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 rounded-2xl space-y-2 relative">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <div className="flex-1">
+                            <select
+                              value={art.selectedKey}
+                              onChange={(e) => handleProductSelectChange(idx, e.target.value)}
+                              required
+                              className="w-full px-3.5 py-2.5 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-xs font-semibold"
+                            >
+                              <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">
+                                {loadingProducts ? "Chargement des produits..." : "-- Sélectionner un produit --"}
+                              </option>
+                              {boissons.length > 0 && (
+                                <optgroup label="🥤 Boissons" className="dark:bg-slate-900 text-text-primary-light font-bold">
+                                  {boissons.map((b) => (
+                                    <option key={`boisson-${b.id}`} value={`boisson:${b.id}`} className="dark:bg-slate-900 font-normal">
+                                      {b.nomBoisson}{b.contenance ? ` (${b.contenance})` : ""}{b.prixVente !== undefined ? ` - ${b.prixVente.toLocaleString()} F CFA` : ""}{b.stock !== undefined ? ` [Stock: ${b.stock}]` : ""}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )}
+                              {repasList.length > 0 && (
+                                <optgroup label="🍲 Repas" className="dark:bg-slate-900 text-text-primary-light font-bold">
+                                  {repasList.map((r) => (
+                                    <option key={`repas-${r.id}`} value={`repas:${r.id}`} className="dark:bg-slate-900 font-normal">
+                                      {r.nomRepas}{r.prix !== undefined ? ` - ${r.prix.toLocaleString()} F CFA` : ""}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )}
+                            </select>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <input
+                              type="number"
+                              min={1}
+                              placeholder="Qté"
+                              value={art.qte}
+                              onChange={(e) => handleQuantityChange(idx, Number(e.target.value))}
+                              required
+                              className="w-20 px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-text-primary-light dark:text-text-primary-dark text-center"
+                            />
+                            {articles.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeArticleRow(idx)}
+                                className="p-2 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+                                title="Supprimer cet article"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {details && (
+                          <div className="flex justify-between items-center px-1 pt-1 text-[11px] font-semibold text-text-secondary-light dark:text-text-secondary-dark border-t border-black/5 dark:border-white/5">
+                            <span>Prix unit: {details.price.toLocaleString()} F CFA</span>
+                            <span className="text-accent-light font-extrabold">Sous-total: {(details.price * art.qte).toLocaleString()} F CFA</span>
+                          </div>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+
+                {calculatedTotal > 0 && (
+                  <div className="p-4 rounded-2xl bg-accent-light/10 border border-accent-light/20 flex justify-between items-center">
+                    <span className="text-xs font-bold uppercase tracking-wider text-text-primary-light dark:text-text-primary-dark">Total estimé</span>
+                    <span className="text-lg font-extrabold text-accent-light">{calculatedTotal.toLocaleString()} F CFA</span>
+                  </div>
+                )}
 
                 <div className="flex gap-4 pt-4">
                   <button
@@ -665,14 +779,14 @@ export const OrdersView: React.FC = () => {
                         </span>
                         <span className="text-text-secondary-light font-semibold">x{art.qte}</span>
                       </div>
-                      <span className="font-semibold text-text-primary-light dark:text-text-primary-dark">{art.sousTotal} F CFA</span>
+                      <span className="font-semibold text-text-primary-light dark:text-text-primary-dark">{art.sousTotal ? art.sousTotal.toLocaleString() : 0} F CFA</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 flex justify-between items-center">
                   <span className="text-xs font-bold uppercase tracking-wider text-text-secondary-light">Total Général</span>
-                  <span className="text-lg font-extrabold text-success-light">{selectedCommande.total} F CFA</span>
+                  <span className="text-lg font-extrabold text-success-light">{selectedCommande.total ? selectedCommande.total.toLocaleString() : 0} F CFA</span>
                 </div>
               </div>
 
