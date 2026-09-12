@@ -1,48 +1,105 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
-import { Loader } from "../../components/Loader";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { getCurrentUser, logout } from "../../services/auth.service";
 
-const AuthCallback = () => {
-  const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+export interface Role {
+  id: string;
+  name: string;
+}
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  picture?: string;
+  roles?: Role[];
+}
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  isAuthenticated: boolean;
+  refreshUser: () => Promise<void>;
+  logoutUser: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const refreshUser = async () => {
+    try {
+      const response = await getCurrentUser();
+      setUser(response.data);
+      return response.data;
+    } catch (error) {
+      if (typeof localStorage !== "undefined") {
+        localStorage.removeItem("access_token");
+      }
+      setUser(null);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logoutUser = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      if (typeof localStorage !== "undefined") {
+        localStorage.removeItem("access_token");
+      }
+      setUser(null);
+    }
+  };
 
   useEffect(() => {
-    const authenticate = async () => {
-      try {
-        if (typeof window !== "undefined") {
-          const searchParams = new URLSearchParams(window.location.search);
-          let token = searchParams.get("access_token") || searchParams.get("token");
+    // Éviter le conflit d'appel simultané /auth/me sur la page de callback OAuth
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith("/auth/callback")
+    ) {
+      setLoading(false);
+      return;
+    }
 
-          // Fallback: verifier les paramètres dans le fragment d'URL (#) au cas où
-          if (!token && window.location.hash) {
-            const hashParams = new URLSearchParams(window.location.hash.substring(1));
-            token = hashParams.get("access_token") || hashParams.get("token");
-          }
+    refreshUser().catch(() => {
+      // Ignorer l'erreur au chargement initial
+    });
+  }, []);
 
-          if (token) {
-            localStorage.setItem("access_token", token);
-            // Nettoyer l'URL du navigateur pour masquer le token immédiatement
-            const cleanUrl = window.location.pathname;
-            window.history.replaceState({}, document.title, cleanUrl);
-          }
-        }
-
-        await refreshUser();
-        navigate("/dashboard", { replace: true });
-      } catch (error) {
-        console.error("Erreur lors de la vérification du callback OAuth:", error);
-        if (typeof localStorage !== "undefined") {
-          localStorage.removeItem("access_token");
-        }
-        navigate("/login", { replace: true });
-      }
-    };
-
-    authenticate();
-  }, [navigate, refreshUser]);
-
-  return <Loader fullScreen message="Connexion en cours..." />;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isAuthenticated: !!user,
+        refreshUser,
+        logoutUser,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-export default AuthCallback;
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
+
+  return context;
+};
