@@ -10,6 +10,13 @@ const AuthCallback = () => {
   useEffect(() => {
     const authenticate = async () => {
       try {
+        if (typeof window !== "undefined") {
+          const searchParams = new URLSearchParams(window.location.search);
+          const token = searchParams.get("token") || searchParams.get("access_token");
+          if (token) {
+            localStorage.setItem("access_token", token);
+          }
+        }
         await refreshUser();
         navigate("/dashboard", { replace: true });
       } catch (error) {
