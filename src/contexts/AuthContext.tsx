@@ -65,6 +65,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
+    // Éviter le conflit d'appel simultané /auth/me sur la page de callback OAuth
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith("/auth/callback")
+    ) {
+      setLoading(false);
+      return;
+    }
+
     refreshUser().catch(() => {
       // Ignorer l'erreur au chargement initial
     });
