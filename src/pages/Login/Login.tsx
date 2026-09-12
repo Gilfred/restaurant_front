@@ -43,7 +43,8 @@ export const Login: React.FC = () => {
   }, [user, loading, navigate, state]);
 
   const handleGoogleLogin = () => {
-    window.location.href = `${API_URL}/auth/google/login`;
+    const baseUrl = API_URL.replace(/\/$/, "");
+    window.location.href = `${baseUrl}/auth/google/login`;
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
