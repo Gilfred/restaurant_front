@@ -7,8 +7,12 @@ import type {
   ResetPasswordRequest,
 } from "../types/auth";
 
-export const login = (data: LoginRequest) => {
-  return api.post<LoginResponse>("/auth/login", data);
+export const login = async (data: LoginRequest) => {
+  const response = await api.post<LoginResponse>("/auth/login", data);
+  if (response.data?.access_token) {
+    localStorage.setItem("access_token", response.data.access_token);
+  }
+  return response;
 };
 
 export const register = (data: RegisterRequest) => {
@@ -23,8 +27,12 @@ export const resetPassword = (data: ResetPasswordRequest) => {
   return api.post("/auth/reset-password", data);
 };
 
-export const logout = () => {
-  return api.post("/auth/logout");
+export const logout = async () => {
+  try {
+    return await api.post("/auth/logout");
+  } finally {
+    localStorage.removeItem("access_token");
+  }
 };
 
 export const getCurrentUser = () => {

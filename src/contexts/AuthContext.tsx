@@ -41,6 +41,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(response.data);
       return response.data;
     } catch (error) {
+      if (typeof localStorage !== "undefined") {
+        localStorage.removeItem("access_token");
+      }
       setUser(null);
       throw error;
     } finally {
@@ -54,6 +57,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       console.error(error);
     } finally {
+      if (typeof localStorage !== "undefined") {
+        localStorage.removeItem("access_token");
+      }
       setUser(null);
     }
   };

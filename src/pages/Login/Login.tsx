@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, UtensilsCrossed, Compass, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { login } from "../../services/auth.service";
-
+import { API_URL } from "../../api/axios";
 import { useAuth } from "../../contexts/AuthContext";
 
 
@@ -43,8 +43,7 @@ export const Login: React.FC = () => {
   }, [user, loading, navigate, state]);
 
   const handleGoogleLogin = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    window.location.href = `${apiUrl}/auth/google/login`;
+    window.location.href = `${API_URL}/auth/google/login`;
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
