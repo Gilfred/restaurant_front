@@ -38,7 +38,8 @@ api.interceptors.response.use(
         typeof window !== "undefined" &&
         !window.location.pathname.startsWith("/login") &&
         !window.location.pathname.startsWith("/register") &&
-        !window.location.pathname.startsWith("/reset-password")
+        !window.location.pathname.startsWith("/reset-password") &&
+        !window.location.pathname.startsWith("/auth/callback")
       ) {
         window.location.href = "/login";
       }
