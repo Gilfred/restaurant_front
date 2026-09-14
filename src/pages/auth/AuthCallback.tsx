@@ -1,107 +1,60 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-import { getCurrentUser, logout } from "../../services/auth.service";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { Loader } from "../../components/Loader";
 
-export interface Role {
-  id: string;
-  name: string;
-}
-
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  picture?: string;
-  roles?: Role[];
-}
-
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  isAuthenticated: boolean;
-  refreshUser: () => Promise<void>;
-  logoutUser: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const refreshUser = async () => {
-    try {
-      const response = await getCurrentUser();
-      setUser(response.data);
-      return response.data;
-    } catch (error) {
-      if (typeof localStorage !== "undefined") {
-        localStorage.removeItem("access_token");
-      }
-      setUser(null);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const logoutUser = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      if (typeof localStorage !== "undefined") {
-        localStorage.removeItem("access_token");
-      }
-      setUser(null);
-    }
-  };
+const AuthCallback: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { refreshUser } = useAuth();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Éviter le conflit d'appel simultané /auth/me sur la page de callback OAuth
-    if (
-      typeof window !== "undefined" &&
-      window.location.pathname.startsWith("/auth/callback")
-    ) {
-      setLoading(false);
-      return;
-    }
+    const handleAuth = async () => {
+      try {
+        let token: string | null = null;
 
-    refreshUser().catch(() => {
-      // Ignorer l'erreur au chargement initial
-    });
-  }, []);
+        // Extract token from search query string
+        const searchParams = new URLSearchParams(location.search);
+        token = searchParams.get("access_token") || searchParams.get("token");
+
+        // If not in search parameters, check location hash fragment
+        if (!token && location.hash) {
+          const hashParams = new URLSearchParams(location.hash.replace(/^#/, ""));
+          token = hashParams.get("access_token") || hashParams.get("token");
+        }
+
+        if (token) {
+          localStorage.setItem("access_token", token);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          await refreshUser();
+          navigate("/dashboard", { replace: true });
+        } else {
+          const errParam =
+            searchParams.get("error") || "Token d'authentification manquant.";
+          setError(errParam);
+          setTimeout(() => {
+            navigate("/login", { replace: true, state: { error: errParam } });
+          }, 1500);
+        }
+      } catch (err: unknown) {
+        console.error("Erreur lors de la vérification du callback auth:", err);
+        setError("Échec de la connexion. Redirection vers la page de connexion...");
+        setTimeout(() => {
+          navigate("/login", { replace: true });
+        }, 1500);
+      }
+    };
+
+    handleAuth();
+  }, [location, navigate, refreshUser]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        isAuthenticated: !!user,
-        refreshUser,
-        logoutUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <Loader
+      fullScreen
+      message={error || "Authentification en cours, veuillez patienter..."}
+    />
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider");
-  }
-
-  return context;
-};
-
-export default AuthContext;
+export default AuthCallback;
