@@ -56,10 +56,18 @@ export const Register: React.FC = () => {
 
     } catch (err: any) {
       console.error(err);
-      setError(
-        err.response?.data?.message ||
-        "Une erreur est survenue lors de l'inscription."
-      );
+      const detail = err.response?.data?.detail;
+      let errorMsg = "Une erreur est survenue lors de l'inscription.";
+
+      if (typeof detail === 'string') {
+        errorMsg = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        errorMsg = detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ');
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      }
+
+      setError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
