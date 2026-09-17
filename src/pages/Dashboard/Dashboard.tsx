@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate, Navigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Sidebar } from '../../components/Sidebar';
 import { Loader } from '../../components/Loader';
 import { Topbar } from '../../components/Topbar';
@@ -28,6 +28,7 @@ import { ApproView } from './Views/ApproView';
 import { UnitesView } from './Views/UnitesView';
 import { OrdersView } from './Views/OrdersView';
 import { ApproBoissonView } from './Views/ApproBoissonView';
+import { MenuView } from './Views/MenuView';
 
 import type { Stat, BestSellingProduct } from './Dashboard.types';
 
@@ -61,7 +62,6 @@ const item = {
 };
 
 export const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
 
@@ -70,27 +70,19 @@ export const Dashboard: React.FC = () => {
   const [isChangingPage, setIsChangingPage] = useState(false);
 
   const setActiveMenuId = (id: string) => {
-    if (id === 'resto-menu') {
-      navigate('/explore');
-      return;
-    }
     if (id !== activeMenuId) {
       setSearchParams({ page: id });
     }
   };
 
   useEffect(() => {
-    if (activeMenuId === 'resto-menu') {
-      navigate('/explore', { replace: true });
-      return;
-    }
     setIsChangingPage(true);
     const timer = setTimeout(() => {
       setIsChangingPage(false);
     }, 450);
 
     return () => clearTimeout(timer);
-  }, [activeMenuId, navigate]);
+  }, [activeMenuId]);
 
   const renderContent = () => {
     switch (activeMenuId) {
@@ -169,7 +161,15 @@ export const Dashboard: React.FC = () => {
         );
 
       case 'resto-menu':
-        return <Navigate to="/explore" replace />;
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-8"
+          >
+            <MenuView />
+          </motion.div>
+        );
 
       case 'resto-inactive':
         return (

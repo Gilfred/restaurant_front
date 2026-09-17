@@ -10,8 +10,9 @@ import {
   Info
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { Restaurant } from './PublicMenu.types';
+import type { Restaurant, Dish } from './PublicMenu.types';
 import { listRestaurants } from '../../services/restaurant.service';
+import { getPublicMenuDisplay } from '../../services/menu.service';
 import type { RestaurantResponse } from '../../types/restaurant';
 import { Loader } from '../../components/Loader';
 import { useAuth } from '../../contexts/AuthContext';
@@ -77,65 +78,123 @@ export const PublicMenu: React.FC = () => {
     const fetchRestaurants = async () => {
       try {
         setLoading(true);
-        const response = await listRestaurants();
-        
-        // Filter active restaurants and map them to the UI's Restaurant format with FCFA prices
-        const activeMapped = response.data
-          .filter((r: RestaurantResponse) => r.isActive)
-          .map((r: RestaurantResponse, index: number) => {
-            const designOptions = [
-              {
-                cuisine: "Gastronomie Africaine",
-                image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
-                description: `Découvrez une expérience culinaire unique chez ${r.name}, proposant une sélection authentique de plats raffinés aux saveurs locales d'Afrique.`,
-                menu: [
-                  { id: `${r.id}-m1`, name: "Saga Saga", description: "Feuilles de manioc pilées avec du poisson fumé et huile de palme.", price: "4 500 F CFA", category: "Entrées" },
-                  { id: `${r.id}-m2`, name: "Poulet Yassa", description: "Poulet mariné au citron, oignons caramélisés et moutarde, servi avec du riz.", price: "7 500 F CFA", category: "Plats" },
-                  { id: `${r.id}-m3`, name: "Thiéboudienne", description: "Riz au poisson et légumes mijotés dans une sauce tomate parfumée.", price: "9 000 F CFA", category: "Plats" },
-                  { id: `${r.id}-m4`, name: "Degue", description: "Couscous de mil au yaourt parfumé à la vanille et fleur d'oranger.", price: "2 500 F CFA", category: "Desserts" }
-                ]
-              },
-              {
-                cuisine: "Cuisine Locale & Fusion",
-                image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80",
-                description: `Une cuisine créative chez ${r.name} mariant avec perfection ingrédients traditionnels et techniques contemporaines.`,
-                menu: [
-                  { id: `${r.id}-m1`, name: "Pastels de Poisson", description: "Beignets farcis au poisson épicé, servis avec une sauce piquante.", price: "3 000 F CFA", category: "Entrées" },
-                  { id: `${r.id}-m2`, name: "Braisé de Capitaine", description: "Filet de capitaine braisé aux herbes, bananes pesées et piment.", price: "8 500 F CFA", category: "Plats" },
-                  { id: `${r.id}-m3`, name: "Mafé de Bœuf", description: "Bœuf mijoté dans une sauce onctueuse à la pâte d'arachide et légumes.", price: "8 000 F CFA", category: "Plats" },
-                  { id: `${r.id}-m4`, name: "Flan au Coco", description: "Flan maison au lait de coco et caramel ambré.", price: "3 000 F CFA", category: "Desserts" }
-                ]
-              },
-              {
-                cuisine: "Grillades & Spécialités",
-                image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80",
-                description: `Des grillades exquises et viandes savoureuses cuites au feu de bois à déguster chez ${r.name}.`,
-                menu: [
-                  { id: `${r.id}-m1`, name: "Alloco au Fromage", description: "Bananes plantains frites accompagnées de dés de fromage local.", price: "2 500 F CFA", category: "Entrées" },
-                  { id: `${r.id}-m2`, name: "Choukouya d'Agneau", description: "Morceaux d'agneau grillés et assaisonnés d'un mélange d'épices secrètes.", price: "9 500 F CFA", category: "Plats" },
-                  { id: `${r.id}-m3`, name: "Kédjénou de Poulet", description: "Ragoût de poulet cuit à l'étouffée avec légumes frais et piment.", price: "7 500 F CFA", category: "Plats" },
-                  { id: `${r.id}-m4`, name: "Salade de Fruits Exotiques", description: "Mangue, ananas, papaye et passion rafraîchis au citron vert.", price: "3 500 F CFA", category: "Desserts" }
-                ]
+        let displayRestaurants: Restaurant[] = [];
+
+        try {
+          const displayRes = await getPublicMenuDisplay();
+          if (displayRes.data?.restaurants && displayRes.data.restaurants.length > 0) {
+            displayRestaurants = displayRes.data.restaurants.map((r, index) => {
+              const menuItems: Dish[] = [];
+
+              if (r.repas && Array.isArray(r.repas)) {
+                r.repas.forEach((item: any) => {
+                  menuItems.push({
+                    id: item.id || `repas-${Math.random()}`,
+                    name: item.nomRepas || item.nom || "Plat Gastronomique",
+                    description: item.description || "Un plat savoureux préparé avec soin par le chef.",
+                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "5 000 F CFA",
+                    category: item.categorie || "Plats"
+                  });
+                });
               }
-            ];
 
-            const option = designOptions[index % designOptions.length];
-            return {
-              id: r.id,
-              name: r.name,
-              cuisine: option.cuisine,
-              rating: Number((4.5 + (index % 5) * 0.1).toFixed(1)),
-              image: option.image,
-              description: option.description,
-              address: r.address,
-              menu: option.menu
-            };
-          });
+              if (r.boissons && Array.isArray(r.boissons)) {
+                r.boissons.forEach((item: any) => {
+                  menuItems.push({
+                    id: item.id || `boisson-${Math.random()}`,
+                    name: item.nomBoisson || item.nom || "Boisson Rafraîchissante",
+                    description: item.description || "Boisson fraîche pour accompagner votre repas.",
+                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "1 500 F CFA",
+                    category: "Boissons"
+                  });
+                });
+              }
 
-        if (activeMapped.length > 0) {
-          setRestaurants(activeMapped);
+              const defaultMenu = [
+                { id: `${r.id || index}-m1`, name: "Saga Saga", description: "Feuilles de manioc pilées avec du poisson fumé et huile de palme.", price: "4 500 F CFA", category: "Entrées" },
+                { id: `${r.id || index}-m2`, name: "Poulet Yassa", description: "Poulet mariné au citron, oignons caramélisés et moutarde, servi avec du riz.", price: "7 500 F CFA", category: "Plats" },
+                { id: `${r.id || index}-m3`, name: "Thiéboudienne", description: "Riz au poisson et légumes mijotés dans une sauce tomate parfumée.", price: "9 000 F CFA", category: "Plats" },
+                { id: `${r.id || index}-m4`, name: "Degue", description: "Couscous de mil au yaourt parfumé à la vanille et fleur d'oranger.", price: "2 500 F CFA", category: "Desserts" }
+              ];
+
+              return {
+                id: r.id || `resto-${index}`,
+                name: r.name || "Restaurant Gastronomique",
+                cuisine: r.cuisine || "Cuisine Africaine & Fusion",
+                rating: 4.8,
+                image: r.image || "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
+                description: r.description || `Découvrez l'expérience culinaire unique chez ${r.name || 'notre établissement'}.`,
+                address: r.address || "Centre-ville",
+                menu: menuItems.length > 0 ? menuItems : defaultMenu
+              };
+            });
+          }
+        } catch (displayErr) {
+          console.warn("Public menu display endpoint unavailable or empty, falling back:", displayErr);
+        }
+
+        if (displayRestaurants.length > 0) {
+          setRestaurants(displayRestaurants);
         } else {
-          setRestaurants(FALLBACK_RESTAURANTS);
+          // Fallback to listRestaurants
+          const response = await listRestaurants();
+          const activeMapped = response.data
+            .filter((r: RestaurantResponse) => r.isActive)
+            .map((r: RestaurantResponse, index: number) => {
+              const designOptions = [
+                {
+                  cuisine: "Gastronomie Africaine",
+                  image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
+                  description: `Découvrez une expérience culinaire unique chez ${r.name}, proposant une sélection authentique de plats raffinés aux saveurs locales d'Afrique.`,
+                  menu: [
+                    { id: `${r.id}-m1`, name: "Saga Saga", description: "Feuilles de manioc pilées avec du poisson fumé et huile de palme.", price: "4 500 F CFA", category: "Entrées" },
+                    { id: `${r.id}-m2`, name: "Poulet Yassa", description: "Poulet mariné au citron, oignons caramélisés et moutarde, servi avec du riz.", price: "7 500 F CFA", category: "Plats" },
+                    { id: `${r.id}-m3`, name: "Thiéboudienne", description: "Riz au poisson et légumes mijotés dans une sauce tomate parfumée.", price: "9 000 F CFA", category: "Plats" },
+                    { id: `${r.id}-m4`, name: "Degue", description: "Couscous de mil au yaourt parfumé à la vanille et fleur d'oranger.", price: "2 500 F CFA", category: "Desserts" }
+                  ]
+                },
+                {
+                  cuisine: "Cuisine Locale & Fusion",
+                  image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80",
+                  description: `Une cuisine créative chez ${r.name} mariant avec perfection ingrédients traditionnels et techniques contemporaines.`,
+                  menu: [
+                    { id: `${r.id}-m1`, name: "Pastels de Poisson", description: "Beignets farcis au poisson épicé, servis avec une sauce piquante.", price: "3 000 F CFA", category: "Entrées" },
+                    { id: `${r.id}-m2`, name: "Braisé de Capitaine", description: "Filet de capitaine braisé aux herbes, bananes pesées et piment.", price: "8 500 F CFA", category: "Plats" },
+                    { id: `${r.id}-m3`, name: "Mafé de Bœuf", description: "Bœuf mijoté dans une sauce onctueuse à la pâte d'arachide et légumes.", price: "8 000 F CFA", category: "Plats" },
+                    { id: `${r.id}-m4`, name: "Flan au Coco", description: "Flan maison au lait de coco et caramel ambré.", price: "3 000 F CFA", category: "Desserts" }
+                  ]
+                },
+                {
+                  cuisine: "Grillades & Spécialités",
+                  image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80",
+                  description: `Des grillades exquises et viandes savoureuses cuites au feu de bois à déguster chez ${r.name}.`,
+                  menu: [
+                    { id: `${r.id}-m1`, name: "Alloco au Fromage", description: "Bananes plantains frites accompagnées de dés de fromage local.", price: "2 500 F CFA", category: "Entrées" },
+                    { id: `${r.id}-m2`, name: "Choukouya d'Agneau", description: "Morceaux d'agneau grillés et assaisonnés d'un mélange d'épices secrètes.", price: "9 500 F CFA", category: "Plats" },
+                    { id: `${r.id}-m3`, name: "Kédjénou de Poulet", description: "Ragoût de poulet cuit à l'étouffée avec légumes frais et piment.", price: "7 500 F CFA", category: "Plats" },
+                    { id: `${r.id}-m4`, name: "Salade de Fruits Exotiques", description: "Mangue, ananas, papaye et passion rafraîchis au citron vert.", price: "3 500 F CFA", category: "Desserts" }
+                  ]
+                }
+              ];
+
+              const option = designOptions[index % designOptions.length];
+              return {
+                id: r.id,
+                name: r.name,
+                cuisine: option.cuisine,
+                rating: Number((4.5 + (index % 5) * 0.1).toFixed(1)),
+                image: option.image,
+                description: option.description,
+                address: r.address,
+                menu: option.menu
+              };
+            });
+
+          if (activeMapped.length > 0) {
+            setRestaurants(activeMapped);
+          } else {
+            setRestaurants(FALLBACK_RESTAURANTS);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch restaurants, using fallback:", err);
