@@ -36,6 +36,7 @@ import type { SidebarProps, MenuItem } from './Sidebar.types';
 
 const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
+  { icon: BookOpen, label: 'Menu', id: 'menu' },
   { icon: ShoppingCart, label: 'Commandes', id: 'orders' },
   { icon: UtensilsCrossed, label: 'Tables', id: 'tables' },
   { icon: CalendarDays, label: 'Réservations', id: 'reservations' },

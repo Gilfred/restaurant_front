@@ -160,6 +160,7 @@ export const Dashboard: React.FC = () => {
           </motion.div>
         );
 
+      case 'menu':
       case 'resto-menu':
         return (
           <motion.div

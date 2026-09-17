@@ -8,7 +8,8 @@ import {
   Search,
   ChevronRight,
   Info,
-  Building2
+  Building2,
+  Image as ImageIcon
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Restaurant, Dish } from './PublicMenu.types';
@@ -46,8 +47,8 @@ export const PublicMenu: React.FC = () => {
                     id: item.id || `repas-${Math.random()}`,
                     name: item.nomRepas || item.nom || "",
                     description: item.description || undefined,
-                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "",
-                    category: item.categorie || "Plats"
+                    price: item.prix ? `${Number(item.prix).toLocaleString()} F CFA` : "",
+                    category: item.categorie || item.menuCategorieId || "Plats"
                   });
                 });
               }
@@ -58,8 +59,9 @@ export const PublicMenu: React.FC = () => {
                     id: item.id || `boisson-${Math.random()}`,
                     name: item.nomBoisson || item.nom || "",
                     description: item.description || undefined,
-                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "",
-                    category: "Boissons"
+                    price: item.prix ? `${Number(item.prix).toLocaleString()} F CFA` : "",
+                    category: "Boissons",
+                    image: item.imageUrl || undefined
                   });
                 });
               }
@@ -72,6 +74,7 @@ export const PublicMenu: React.FC = () => {
                 image: r.image || undefined,
                 description: r.description || undefined,
                 address: r.address || undefined,
+                familles: r.familles || [],
                 menu: menuItems
               };
             });
@@ -95,6 +98,7 @@ export const PublicMenu: React.FC = () => {
               image: undefined,
               description: undefined,
               address: r.address || undefined,
+              familles: [],
               menu: []
             }));
 
@@ -298,6 +302,32 @@ export const PublicMenu: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Familles Gallery if present */}
+                {selectedRestaurant.familles && selectedRestaurant.familles.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                      Familles de menu
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {selectedRestaurant.familles.map((fam) => (
+                        <div key={fam.id} className="glass-card-premium p-4 flex flex-col items-center text-center space-y-2">
+                          {fam.images && fam.images.length > 0 ? (
+                            <img src={fam.images[0].imageUrl} alt={fam.nom} className="w-full h-24 object-cover rounded-xl" />
+                          ) : (
+                            <div className="w-full h-24 rounded-xl bg-white/5 flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark">
+                              <ImageIcon size={24} className="opacity-30" />
+                            </div>
+                          )}
+                          <span className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark">
+                            {fam.nom}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Categories & Menu Items */}
                 <div className="space-y-12">
                   {categories.map(category => (
                     <div key={category} className="space-y-6">
@@ -313,19 +343,24 @@ export const PublicMenu: React.FC = () => {
                               key={item.id}
                               initial={{ opacity: 0, scale: 0.95 }}
                               animate={{ opacity: 1, scale: 1 }}
-                              className="glass-card-premium p-6 hover:bg-white/50 dark:hover:bg-slate-800/60 transition-colors group"
+                              className="glass-card-premium p-6 hover:bg-white/50 dark:hover:bg-slate-800/60 transition-colors group flex gap-4"
                             >
-                              <div className="flex justify-between items-start mb-2">
-                                <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark group-hover:text-accent-light transition-colors">
-                                  {item.name}
-                                </h4>
-                                {item.price && <span className="text-accent-light font-bold text-lg">{item.price}</span>}
-                              </div>
-                              {item.description && (
-                                <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
-                                  {item.description}
-                                </p>
+                              {item.image && (
+                                <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-2xl border border-white/10 flex-shrink-0" />
                               )}
+                              <div className="flex-1">
+                                <div className="flex justify-between items-start mb-2">
+                                  <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark group-hover:text-accent-light transition-colors">
+                                    {item.name}
+                                  </h4>
+                                  {item.price && <span className="text-accent-light font-bold text-lg">{item.price}</span>}
+                                </div>
+                                {item.description && (
+                                  <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
+                                    {item.description}
+                                  </p>
+                                )}
+                              </div>
                             </motion.div>
                           ))}
                       </div>

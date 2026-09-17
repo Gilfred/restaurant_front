@@ -1,3 +1,5 @@
+import type { MenuFamille } from '../../types/menu';
+
 export interface Dish {
   id: string;
   name: string;
@@ -15,5 +17,6 @@ export interface Restaurant {
   image?: string;
   description?: string;
   address?: string;
+  familles?: MenuFamille[];
   menu: Dish[];
 }
