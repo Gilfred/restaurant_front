@@ -7,7 +7,8 @@ import {
   MapPin,
   Search,
   ChevronRight,
-  Info
+  Info,
+  Building2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Restaurant, Dish } from './PublicMenu.types';
@@ -36,16 +37,16 @@ export const PublicMenu: React.FC = () => {
         try {
           const displayRes = await getPublicMenuDisplay();
           if (displayRes.data?.restaurants && displayRes.data.restaurants.length > 0) {
-            displayRestaurants = displayRes.data.restaurants.map((r, index) => {
+            displayRestaurants = displayRes.data.restaurants.map((r) => {
               const menuItems: Dish[] = [];
 
               if (r.repas && Array.isArray(r.repas)) {
                 r.repas.forEach((item: any) => {
                   menuItems.push({
                     id: item.id || `repas-${Math.random()}`,
-                    name: item.nomRepas || item.nom || "Plat",
-                    description: item.description || "",
-                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "Prix non disponible",
+                    name: item.nomRepas || item.nom || "",
+                    description: item.description || undefined,
+                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "",
                     category: item.categorie || "Plats"
                   });
                 });
@@ -55,22 +56,22 @@ export const PublicMenu: React.FC = () => {
                 r.boissons.forEach((item: any) => {
                   menuItems.push({
                     id: item.id || `boisson-${Math.random()}`,
-                    name: item.nomBoisson || item.nom || "Boisson",
-                    description: item.description || "",
-                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "Prix non disponible",
+                    name: item.nomBoisson || item.nom || "",
+                    description: item.description || undefined,
+                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "",
                     category: "Boissons"
                   });
                 });
               }
 
               return {
-                id: r.id || `resto-${index}`,
-                name: r.name || "Restaurant",
-                cuisine: r.cuisine || "Cuisine Locale",
-                rating: 4.8,
-                image: r.image || "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
-                description: r.description || `Bienvenue chez ${r.name || 'notre établissement'}.`,
-                address: r.address || "Adresse non renseignée",
+                id: r.id,
+                name: r.name || "",
+                cuisine: r.cuisine || undefined,
+                rating: r.rating !== undefined && r.rating !== null ? Number(r.rating) : undefined,
+                image: r.image || undefined,
+                description: r.description || undefined,
+                address: r.address || undefined,
                 menu: menuItems
               };
             });
@@ -82,18 +83,18 @@ export const PublicMenu: React.FC = () => {
         if (displayRestaurants.length > 0) {
           setRestaurants(displayRestaurants);
         } else {
-          // Fallback to listRestaurants directly without hardcoded mock menus
+          // Fallback to listRestaurants directly without hardcoded mock values
           const response = await listRestaurants();
           const activeMapped = response.data
             .filter((r: RestaurantResponse) => r.isActive)
-            .map((r: RestaurantResponse, index: number) => ({
+            .map((r: RestaurantResponse) => ({
               id: r.id,
               name: r.name,
-              cuisine: "Gastronomie Locale",
-              rating: Number((4.5 + (index % 5) * 0.1).toFixed(1)),
-              image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
-              description: `Découvrez la carte du restaurant ${r.name}.`,
-              address: r.address,
+              cuisine: undefined,
+              rating: undefined,
+              image: undefined,
+              description: undefined,
+              address: r.address || undefined,
               menu: []
             }));
 
@@ -112,8 +113,8 @@ export const PublicMenu: React.FC = () => {
   }, []);
 
   const filteredRestaurants = restaurants.filter(r =>
-    r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.cuisine.toLowerCase().includes(searchQuery.toLowerCase())
+    (r.name && r.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (r.cuisine && r.cuisine.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const categories = selectedRestaurant
@@ -148,7 +149,7 @@ export const PublicMenu: React.FC = () => {
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark group-focus-within:text-accent-light transition-colors" />
               <input
                 type="text"
-                placeholder="Rechercher un restaurant ou une cuisine..."
+                placeholder="Rechercher un restaurant..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark"
@@ -188,16 +189,22 @@ export const PublicMenu: React.FC = () => {
                     className="glass-card-premium overflow-hidden flex flex-col group cursor-pointer"
                     onClick={() => setSelectedRestaurant(restaurant)}
                   >
-                    <div className="h-48 overflow-hidden relative">
-                      <img
-                        src={restaurant.image}
-                        alt={restaurant.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                      <div className="absolute top-4 right-4 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full flex items-center gap-1">
-                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                        <span className="text-xs font-bold text-white">{restaurant.rating}</span>
-                      </div>
+                    <div className="h-48 overflow-hidden relative bg-gradient-to-tr from-slate-800 to-slate-950 flex items-center justify-center">
+                      {restaurant.image ? (
+                        <img
+                          src={restaurant.image}
+                          alt={restaurant.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                      ) : (
+                        <Building2 className="w-16 h-16 text-white/20 group-hover:scale-110 transition-transform duration-300" />
+                      )}
+                      {restaurant.rating !== undefined && restaurant.rating !== null && (
+                        <div className="absolute top-4 right-4 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full flex items-center gap-1">
+                          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                          <span className="text-xs font-bold text-white">{restaurant.rating}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="p-6 flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-2">
@@ -205,18 +212,24 @@ export const PublicMenu: React.FC = () => {
                           {restaurant.name}
                         </h3>
                       </div>
-                      <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4 line-clamp-2">
-                        {restaurant.description}
-                      </p>
-                      <div className="mt-auto space-y-3">
-                        <div className="flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                          <UtensilsCrossed className="w-4 h-4" />
-                          <span>{restaurant.cuisine}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                          <MapPin className="w-4 h-4" />
-                          <span>{restaurant.address}</span>
-                        </div>
+                      {restaurant.description && (
+                        <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4 line-clamp-2">
+                          {restaurant.description}
+                        </p>
+                      )}
+                      <div className="mt-auto space-y-3 pt-2">
+                        {restaurant.cuisine && (
+                          <div className="flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                            <UtensilsCrossed className="w-4 h-4" />
+                            <span>{restaurant.cuisine}</span>
+                          </div>
+                        )}
+                        {restaurant.address && (
+                          <div className="flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                            <MapPin className="w-4 h-4" />
+                            <span>{restaurant.address}</span>
+                          </div>
+                        )}
                         <button className="w-full py-3 mt-4 glass-capsule rounded-xl flex items-center justify-center gap-2 text-text-primary-light dark:text-text-primary-dark font-semibold group-hover:bg-accent-light group-hover:text-white transition-all">
                           Voir la carte
                           <ChevronRight className="w-4 h-4" />
@@ -248,27 +261,39 @@ export const PublicMenu: React.FC = () => {
                 </button>
 
                 <div className="glass-card-premium p-8 flex flex-col md:flex-row gap-8 items-center">
-                  <div className="w-full md:w-64 h-64 rounded-3xl overflow-hidden shadow-lg">
-                    <img src={selectedRestaurant.image} alt={selectedRestaurant.name} className="w-full h-full object-cover" />
+                  <div className="w-full md:w-64 h-64 rounded-3xl overflow-hidden shadow-lg bg-gradient-to-tr from-slate-800 to-slate-950 flex items-center justify-center">
+                    {selectedRestaurant.image ? (
+                      <img src={selectedRestaurant.image} alt={selectedRestaurant.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Building2 className="w-20 h-20 text-white/20" />
+                    )}
                   </div>
                   <div className="flex-1 space-y-4">
                     <div className="flex items-center gap-3">
                       <h2 className="text-4xl font-bold text-text-primary-light dark:text-text-primary-dark">{selectedRestaurant.name}</h2>
-                      <div className="px-3 py-1 bg-accent-light/10 text-accent-light rounded-full text-sm font-bold flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-current" />
-                        {selectedRestaurant.rating}
-                      </div>
+                      {selectedRestaurant.rating !== undefined && selectedRestaurant.rating !== null && (
+                        <div className="px-3 py-1 bg-accent-light/10 text-accent-light rounded-full text-sm font-bold flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-current" />
+                          {selectedRestaurant.rating}
+                        </div>
+                      )}
                     </div>
-                    <p className="text-lg text-text-secondary-light dark:text-text-secondary-dark max-w-2xl">{selectedRestaurant.description}</p>
+                    {selectedRestaurant.description && (
+                      <p className="text-lg text-text-secondary-light dark:text-text-secondary-dark max-w-2xl">{selectedRestaurant.description}</p>
+                    )}
                     <div className="flex flex-wrap gap-6">
-                      <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary-dark">
-                        <UtensilsCrossed className="w-5 h-5 text-accent-light" />
-                        <span>{selectedRestaurant.cuisine}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary-dark">
-                        <MapPin className="w-5 h-5 text-accent-light" />
-                        <span>{selectedRestaurant.address}</span>
-                      </div>
+                      {selectedRestaurant.cuisine && (
+                        <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary-dark">
+                          <UtensilsCrossed className="w-5 h-5 text-accent-light" />
+                          <span>{selectedRestaurant.cuisine}</span>
+                        </div>
+                      )}
+                      {selectedRestaurant.address && (
+                        <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary-dark">
+                          <MapPin className="w-5 h-5 text-accent-light" />
+                          <span>{selectedRestaurant.address}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -294,7 +319,7 @@ export const PublicMenu: React.FC = () => {
                                 <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark group-hover:text-accent-light transition-colors">
                                   {item.name}
                                 </h4>
-                                <span className="text-accent-light font-bold text-lg">{item.price}</span>
+                                {item.price && <span className="text-accent-light font-bold text-lg">{item.price}</span>}
                               </div>
                               {item.description && (
                                 <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
