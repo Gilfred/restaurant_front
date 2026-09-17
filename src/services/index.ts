@@ -4,3 +4,4 @@ export * from "./commande.service";
 export * from "./approBoisson.service";
 export * from "./boisson.service";
 export * from "./repas.service";
+export * from "./menu.service";

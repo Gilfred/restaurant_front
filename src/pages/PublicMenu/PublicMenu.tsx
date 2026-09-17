@@ -7,62 +7,16 @@ import {
   MapPin,
   Search,
   ChevronRight,
-  Info
+  Info,
+  Building2
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { Restaurant } from './PublicMenu.types';
+import type { Restaurant, Dish } from './PublicMenu.types';
 import { listRestaurants } from '../../services/restaurant.service';
+import { getPublicMenuDisplay } from '../../services/menu.service';
 import type { RestaurantResponse } from '../../types/restaurant';
 import { Loader } from '../../components/Loader';
 import { useAuth } from '../../contexts/AuthContext';
-
-const FALLBACK_RESTAURANTS: Restaurant[] = [
-  {
-    id: 'f1',
-    name: "La Table D'Or Paris",
-    cuisine: "Gastronomie Africaine",
-    rating: 4.9,
-    image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
-    description: "Découvrez une expérience culinaire unique chez La Table D'Or Paris, proposant une sélection authentique de plats raffinés aux saveurs locales d'Afrique.",
-    address: "15 Rue de la Paix, Paris",
-    menu: [
-      { id: 'f1-m1', name: "Saga Saga", description: "Feuilles de manioc pilées avec du poisson fumé et huile de palme.", price: "4 500 F CFA", category: "Entrées" },
-      { id: 'f1-m2', name: "Poulet Yassa", description: "Poulet mariné au citron, oignons caramélisés et moutarde, servi avec du riz.", price: "7 500 F CFA", category: "Plats" },
-      { id: 'f1-m3', name: "Thiéboudienne", description: "Riz au poisson et légumes mijotés dans une sauce tomate parfumée.", price: "9 000 F CFA", category: "Plats" },
-      { id: 'f1-m4', name: "Degue", description: "Couscous de mil au yaourt parfumé à la vanille et fleur d'oranger.", price: "2 500 F CFA", category: "Desserts" }
-    ]
-  },
-  {
-    id: 'f2',
-    name: "Lumina Gourmet",
-    cuisine: "Cuisine Locale & Fusion",
-    rating: 4.8,
-    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80",
-    description: "Une cuisine créative chez Lumina Gourmet mariant avec perfection ingrédients traditionnels et techniques contemporaines.",
-    address: "42 Boulevard Haussmann, Paris",
-    menu: [
-      { id: 'f2-m1', name: "Pastels de Poisson", description: "Beignets farcis au poisson épicé, servis avec une sauce piquante.", price: "3 000 F CFA", category: "Entrées" },
-      { id: 'f2-m2', name: "Braisé de Capitaine", description: "Filet de capitaine braisé aux herbes, bananes pesées et piment.", price: "8 500 F CFA", category: "Plats" },
-      { id: 'f2-m3', name: "Mafé de Bœuf", description: "Bœuf mijoté dans une sauce onctueuse à la pâte d'arachide et légumes.", price: "8 000 F CFA", category: "Plats" },
-      { id: 'f2-m4', name: "Flan au Coco", description: "Flan maison au lait de coco et caramel ambré.", price: "3 000 F CFA", category: "Desserts" }
-    ]
-  },
-  {
-    id: 'f3',
-    name: "Le Grill Tropical",
-    cuisine: "Grillades & Spécialités",
-    rating: 4.7,
-    image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80",
-    description: "Des grillades exquises et viandes savoureuses cuites au feu de bois à déguster chez Le Grill Tropical.",
-    address: "88 Avenue des Champs-Élysées, Paris",
-    menu: [
-      { id: 'f3-m1', name: "Alloco au Fromage", description: "Bananes plantains frites accompagnées de dés de fromage local.", price: "2 500 F CFA", category: "Entrées" },
-      { id: 'f3-m2', name: "Choukouya d'Agneau", description: "Morceaux d'agneau grillés et assaisonnés d'un mélange d'épices secrètes.", price: "9 500 F CFA", category: "Plats" },
-      { id: 'f3-m3', name: "Kédjénou de Poulet", description: "Ragoût de poulet cuit à l'étouffée avec légumes frais et piment.", price: "7 500 F CFA", category: "Plats" },
-      { id: 'f3-m4', name: "Salade de Fruits Exotiques", description: "Mangue, ananas, papaye et passion rafraîchis au citron vert.", price: "3 500 F CFA", category: "Desserts" }
-    ]
-  }
-];
 
 export const PublicMenu: React.FC = () => {
   const navigate = useNavigate();
@@ -77,70 +31,79 @@ export const PublicMenu: React.FC = () => {
     const fetchRestaurants = async () => {
       try {
         setLoading(true);
-        const response = await listRestaurants();
-        
-        // Filter active restaurants and map them to the UI's Restaurant format with FCFA prices
-        const activeMapped = response.data
-          .filter((r: RestaurantResponse) => r.isActive)
-          .map((r: RestaurantResponse, index: number) => {
-            const designOptions = [
-              {
-                cuisine: "Gastronomie Africaine",
-                image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
-                description: `Découvrez une expérience culinaire unique chez ${r.name}, proposant une sélection authentique de plats raffinés aux saveurs locales d'Afrique.`,
-                menu: [
-                  { id: `${r.id}-m1`, name: "Saga Saga", description: "Feuilles de manioc pilées avec du poisson fumé et huile de palme.", price: "4 500 F CFA", category: "Entrées" },
-                  { id: `${r.id}-m2`, name: "Poulet Yassa", description: "Poulet mariné au citron, oignons caramélisés et moutarde, servi avec du riz.", price: "7 500 F CFA", category: "Plats" },
-                  { id: `${r.id}-m3`, name: "Thiéboudienne", description: "Riz au poisson et légumes mijotés dans une sauce tomate parfumée.", price: "9 000 F CFA", category: "Plats" },
-                  { id: `${r.id}-m4`, name: "Degue", description: "Couscous de mil au yaourt parfumé à la vanille et fleur d'oranger.", price: "2 500 F CFA", category: "Desserts" }
-                ]
-              },
-              {
-                cuisine: "Cuisine Locale & Fusion",
-                image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80",
-                description: `Une cuisine créative chez ${r.name} mariant avec perfection ingrédients traditionnels et techniques contemporaines.`,
-                menu: [
-                  { id: `${r.id}-m1`, name: "Pastels de Poisson", description: "Beignets farcis au poisson épicé, servis avec une sauce piquante.", price: "3 000 F CFA", category: "Entrées" },
-                  { id: `${r.id}-m2`, name: "Braisé de Capitaine", description: "Filet de capitaine braisé aux herbes, bananes pesées et piment.", price: "8 500 F CFA", category: "Plats" },
-                  { id: `${r.id}-m3`, name: "Mafé de Bœuf", description: "Bœuf mijoté dans une sauce onctueuse à la pâte d'arachide et légumes.", price: "8 000 F CFA", category: "Plats" },
-                  { id: `${r.id}-m4`, name: "Flan au Coco", description: "Flan maison au lait de coco et caramel ambré.", price: "3 000 F CFA", category: "Desserts" }
-                ]
-              },
-              {
-                cuisine: "Grillades & Spécialités",
-                image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80",
-                description: `Des grillades exquises et viandes savoureuses cuites au feu de bois à déguster chez ${r.name}.`,
-                menu: [
-                  { id: `${r.id}-m1`, name: "Alloco au Fromage", description: "Bananes plantains frites accompagnées de dés de fromage local.", price: "2 500 F CFA", category: "Entrées" },
-                  { id: `${r.id}-m2`, name: "Choukouya d'Agneau", description: "Morceaux d'agneau grillés et assaisonnés d'un mélange d'épices secrètes.", price: "9 500 F CFA", category: "Plats" },
-                  { id: `${r.id}-m3`, name: "Kédjénou de Poulet", description: "Ragoût de poulet cuit à l'étouffée avec légumes frais et piment.", price: "7 500 F CFA", category: "Plats" },
-                  { id: `${r.id}-m4`, name: "Salade de Fruits Exotiques", description: "Mangue, ananas, papaye et passion rafraîchis au citron vert.", price: "3 500 F CFA", category: "Desserts" }
-                ]
-              }
-            ];
+        setError(null);
+        let displayRestaurants: Restaurant[] = [];
 
-            const option = designOptions[index % designOptions.length];
-            return {
+        try {
+          const displayRes = await getPublicMenuDisplay();
+          if (displayRes.data?.restaurants && displayRes.data.restaurants.length > 0) {
+            displayRestaurants = displayRes.data.restaurants.map((r) => {
+              const menuItems: Dish[] = [];
+
+              if (r.repas && Array.isArray(r.repas)) {
+                r.repas.forEach((item: any) => {
+                  menuItems.push({
+                    id: item.id || `repas-${Math.random()}`,
+                    name: item.nomRepas || item.nom || "",
+                    description: item.description || undefined,
+                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "",
+                    category: item.categorie || "Plats"
+                  });
+                });
+              }
+
+              if (r.boissons && Array.isArray(r.boissons)) {
+                r.boissons.forEach((item: any) => {
+                  menuItems.push({
+                    id: item.id || `boisson-${Math.random()}`,
+                    name: item.nomBoisson || item.nom || "",
+                    description: item.description || undefined,
+                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "",
+                    category: "Boissons"
+                  });
+                });
+              }
+
+              return {
+                id: r.id,
+                name: r.name || "",
+                cuisine: r.cuisine || undefined,
+                rating: r.rating !== undefined && r.rating !== null ? Number(r.rating) : undefined,
+                image: r.image || undefined,
+                description: r.description || undefined,
+                address: r.address || undefined,
+                menu: menuItems
+              };
+            });
+          }
+        } catch (displayErr) {
+          console.warn("Public menu display endpoint failed or empty:", displayErr);
+        }
+
+        if (displayRestaurants.length > 0) {
+          setRestaurants(displayRestaurants);
+        } else {
+          // Fallback to listRestaurants directly without hardcoded mock values
+          const response = await listRestaurants();
+          const activeMapped = response.data
+            .filter((r: RestaurantResponse) => r.isActive)
+            .map((r: RestaurantResponse) => ({
               id: r.id,
               name: r.name,
-              cuisine: option.cuisine,
-              rating: Number((4.5 + (index % 5) * 0.1).toFixed(1)),
-              image: option.image,
-              description: option.description,
-              address: r.address,
-              menu: option.menu
-            };
-          });
+              cuisine: undefined,
+              rating: undefined,
+              image: undefined,
+              description: undefined,
+              address: r.address || undefined,
+              menu: []
+            }));
 
-        if (activeMapped.length > 0) {
           setRestaurants(activeMapped);
-        } else {
-          setRestaurants(FALLBACK_RESTAURANTS);
         }
       } catch (err) {
-        console.error("Failed to fetch restaurants, using fallback:", err);
-        setError("Impossible de charger la liste depuis le serveur. Mode secours actif.");
-        setRestaurants(FALLBACK_RESTAURANTS);
+        console.error("Failed to fetch restaurants:", err);
+        setError("Impossible de charger la liste des restaurants depuis le serveur.");
+        setRestaurants([]);
       } finally {
         setLoading(false);
       }
@@ -150,8 +113,8 @@ export const PublicMenu: React.FC = () => {
   }, []);
 
   const filteredRestaurants = restaurants.filter(r =>
-    r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.cuisine.toLowerCase().includes(searchQuery.toLowerCase())
+    (r.name && r.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (r.cuisine && r.cuisine.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const categories = selectedRestaurant
@@ -186,7 +149,7 @@ export const PublicMenu: React.FC = () => {
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-secondary-light dark:text-text-secondary-dark group-focus-within:text-accent-light transition-colors" />
               <input
                 type="text"
-                placeholder="Rechercher un restaurant ou une cuisine..."
+                placeholder="Rechercher un restaurant..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark"
@@ -226,16 +189,22 @@ export const PublicMenu: React.FC = () => {
                     className="glass-card-premium overflow-hidden flex flex-col group cursor-pointer"
                     onClick={() => setSelectedRestaurant(restaurant)}
                   >
-                    <div className="h-48 overflow-hidden relative">
-                      <img
-                        src={restaurant.image}
-                        alt={restaurant.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                      <div className="absolute top-4 right-4 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full flex items-center gap-1">
-                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                        <span className="text-xs font-bold text-white">{restaurant.rating}</span>
-                      </div>
+                    <div className="h-48 overflow-hidden relative bg-gradient-to-tr from-slate-800 to-slate-950 flex items-center justify-center">
+                      {restaurant.image ? (
+                        <img
+                          src={restaurant.image}
+                          alt={restaurant.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                      ) : (
+                        <Building2 className="w-16 h-16 text-white/20 group-hover:scale-110 transition-transform duration-300" />
+                      )}
+                      {restaurant.rating !== undefined && restaurant.rating !== null && (
+                        <div className="absolute top-4 right-4 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full flex items-center gap-1">
+                          <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                          <span className="text-xs font-bold text-white">{restaurant.rating}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="p-6 flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-2">
@@ -243,18 +212,24 @@ export const PublicMenu: React.FC = () => {
                           {restaurant.name}
                         </h3>
                       </div>
-                      <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4 line-clamp-2">
-                        {restaurant.description}
-                      </p>
-                      <div className="mt-auto space-y-3">
-                        <div className="flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                          <UtensilsCrossed className="w-4 h-4" />
-                          <span>{restaurant.cuisine}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                          <MapPin className="w-4 h-4" />
-                          <span>{restaurant.address}</span>
-                        </div>
+                      {restaurant.description && (
+                        <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4 line-clamp-2">
+                          {restaurant.description}
+                        </p>
+                      )}
+                      <div className="mt-auto space-y-3 pt-2">
+                        {restaurant.cuisine && (
+                          <div className="flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                            <UtensilsCrossed className="w-4 h-4" />
+                            <span>{restaurant.cuisine}</span>
+                          </div>
+                        )}
+                        {restaurant.address && (
+                          <div className="flex items-center gap-2 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                            <MapPin className="w-4 h-4" />
+                            <span>{restaurant.address}</span>
+                          </div>
+                        )}
                         <button className="w-full py-3 mt-4 glass-capsule rounded-xl flex items-center justify-center gap-2 text-text-primary-light dark:text-text-primary-dark font-semibold group-hover:bg-accent-light group-hover:text-white transition-all">
                           Voir la carte
                           <ChevronRight className="w-4 h-4" />
@@ -286,27 +261,39 @@ export const PublicMenu: React.FC = () => {
                 </button>
 
                 <div className="glass-card-premium p-8 flex flex-col md:flex-row gap-8 items-center">
-                  <div className="w-full md:w-64 h-64 rounded-3xl overflow-hidden shadow-lg">
-                    <img src={selectedRestaurant.image} alt={selectedRestaurant.name} className="w-full h-full object-cover" />
+                  <div className="w-full md:w-64 h-64 rounded-3xl overflow-hidden shadow-lg bg-gradient-to-tr from-slate-800 to-slate-950 flex items-center justify-center">
+                    {selectedRestaurant.image ? (
+                      <img src={selectedRestaurant.image} alt={selectedRestaurant.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Building2 className="w-20 h-20 text-white/20" />
+                    )}
                   </div>
                   <div className="flex-1 space-y-4">
                     <div className="flex items-center gap-3">
                       <h2 className="text-4xl font-bold text-text-primary-light dark:text-text-primary-dark">{selectedRestaurant.name}</h2>
-                      <div className="px-3 py-1 bg-accent-light/10 text-accent-light rounded-full text-sm font-bold flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-current" />
-                        {selectedRestaurant.rating}
-                      </div>
+                      {selectedRestaurant.rating !== undefined && selectedRestaurant.rating !== null && (
+                        <div className="px-3 py-1 bg-accent-light/10 text-accent-light rounded-full text-sm font-bold flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-current" />
+                          {selectedRestaurant.rating}
+                        </div>
+                      )}
                     </div>
-                    <p className="text-lg text-text-secondary-light dark:text-text-secondary-dark max-w-2xl">{selectedRestaurant.description}</p>
+                    {selectedRestaurant.description && (
+                      <p className="text-lg text-text-secondary-light dark:text-text-secondary-dark max-w-2xl">{selectedRestaurant.description}</p>
+                    )}
                     <div className="flex flex-wrap gap-6">
-                      <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary-dark">
-                        <UtensilsCrossed className="w-5 h-5 text-accent-light" />
-                        <span>{selectedRestaurant.cuisine}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary-dark">
-                        <MapPin className="w-5 h-5 text-accent-light" />
-                        <span>{selectedRestaurant.address}</span>
-                      </div>
+                      {selectedRestaurant.cuisine && (
+                        <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary-dark">
+                          <UtensilsCrossed className="w-5 h-5 text-accent-light" />
+                          <span>{selectedRestaurant.cuisine}</span>
+                        </div>
+                      )}
+                      {selectedRestaurant.address && (
+                        <div className="flex items-center gap-2 text-text-secondary-light dark:text-text-secondary-dark">
+                          <MapPin className="w-5 h-5 text-accent-light" />
+                          <span>{selectedRestaurant.address}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -332,16 +319,24 @@ export const PublicMenu: React.FC = () => {
                                 <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark group-hover:text-accent-light transition-colors">
                                   {item.name}
                                 </h4>
-                                <span className="text-accent-light font-bold text-lg">{item.price}</span>
+                                {item.price && <span className="text-accent-light font-bold text-lg">{item.price}</span>}
                               </div>
-                              <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
-                                {item.description}
-                              </p>
+                              {item.description && (
+                                <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
+                                  {item.description}
+                                </p>
+                              )}
                             </motion.div>
                           ))}
                       </div>
                     </div>
                   ))}
+
+                  {categories.length === 0 && (
+                    <div className="glass-card-premium p-12 text-center">
+                      <p className="text-text-secondary-light dark:text-text-secondary-dark">Aucun plat ou boisson au menu pour ce restaurant.</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="glass-card-premium p-8 bg-accent-light/5 border-accent-light/20 text-center">
