@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Trash2,
   Edit2,
   Upload,
-  BookOpen,
   CheckCircle2,
   X,
   Loader2,
@@ -15,90 +13,134 @@ import {
   Wine,
   Layers,
   Sparkles,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Settings,
+  Eye,
+  Building2,
+  MapPin,
+  UtensilsCrossed,
+  RefreshCw
 } from "lucide-react";
 import {
+  getPublicMenuDisplay,
   listFamilles,
   createFamille,
   updateFamille,
   deleteFamille,
   uploadMenuImage,
+  updateFamilleImage,
   deleteFamilleImage,
   listAvailableCategories,
   createMenuRepas,
-  createMenuBoisson
+  updateMenuRepas,
+  deleteMenuRepas,
+  createMenuBoisson,
+  updateMenuBoisson,
+  deleteMenuBoisson
 } from "../../../services/menu.service";
 import { listRepas } from "../../../services/repas.service";
 import { listBoissons } from "../../../services/boisson.service";
 import type {
   MenuFamille,
   MenuFamilleCreate,
-  MenuFamilleUpdate
+  MenuFamilleUpdate,
+  MenuFamilleImage,
+  MenuDisplayRestaurant,
+  MenuRepas,
+  MenuBoisson
 } from "../../../types/menu";
 import type { RepasResponse } from "../../../types/repas";
 import type { BoissonResponse } from "../../../types/boisson";
 
 export const MenuView: React.FC = () => {
-  const navigate = useNavigate();
+  // Top-level mode: "gestion" | "apercu"
+  const [topMode, setTopMode] = useState<"gestion" | "apercu">("gestion");
 
-  // Active sub-tab in Menu Management View
-  const [activeTab, setActiveTab] = useState<"familles" | "repas" | "boissons">("familles");
+  // Sub-tab under "gestion": "familles" | "repas" | "boissons"
+  const [gestionTab, setGestionTab] = useState<"familles" | "repas" | "boissons">("familles");
 
-  // Data state
+  // Data states
   const [familles, setFamilles] = useState<MenuFamille[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [availableRepas, setAvailableRepas] = useState<RepasResponse[]>([]);
-  const [availableBoissons, setAvailableBoissons] = useState<BoissonResponse[]>([]);
+  const [allRestaurantRepas, setAllRestaurantRepas] = useState<RepasResponse[]>([]);
+  const [allRestaurantBoissons, setAllRestaurantBoissons] = useState<BoissonResponse[]>([]);
+  const [displayRestaurant, setDisplayRestaurant] = useState<MenuDisplayRestaurant | null>(null);
+
+  // Menu items parsed from display
+  const [menuRepasItems, setMenuRepasItems] = useState<MenuRepas[]>([]);
+  const [menuBoissonItems, setMenuBoissonItems] = useState<MenuBoisson[]>([]);
 
   // Feedback states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Modal states
+  // --- Modal States ---
+  // 1. Famille Modal (Create / Edit)
   const [isFamilleModalOpen, setIsFamilleModalOpen] = useState(false);
   const [editingFamille, setEditingFamille] = useState<MenuFamille | null>(null);
   const [familleNom, setFamilleNom] = useState("");
   const [familleOrdre, setFamilleOrdre] = useState<number>(0);
 
+  // 2. Upload Image Modal
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedFamilleForUpload, setSelectedFamilleForUpload] = useState<string>("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadOrdre, setUploadOrdre] = useState<number>(0);
 
+  // 3. Edit Image Modal
+  const [isEditImageModalOpen, setIsEditImageModalOpen] = useState(false);
+  const [editingImage, setEditingImage] = useState<MenuFamilleImage | null>(null);
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImageOrdre, setEditImageOrdre] = useState<number>(0);
+
+  // 4. Repas Modal (Create / Edit)
   const [isRepasModalOpen, setIsRepasModalOpen] = useState(false);
+  const [editingMenuRepas, setEditingMenuRepas] = useState<MenuRepas | null>(null);
   const [selectedRepasId, setSelectedRepasId] = useState<string>("");
   const [selectedCategorieId, setSelectedCategorieId] = useState<string>("");
   const [repasOrdre, setRepasOrdre] = useState<number>(0);
 
+  // 5. Boisson Modal (Create / Edit)
   const [isBoissonModalOpen, setIsBoissonModalOpen] = useState(false);
+  const [editingMenuBoisson, setEditingMenuBoisson] = useState<MenuBoisson | null>(null);
   const [selectedBoissonId, setSelectedBoissonId] = useState<string>("");
   const [boissonImageUrl, setBoissonImageUrl] = useState<string>("");
   const [boissonOrdre, setBoissonOrdre] = useState<number>(0);
 
-  const [submitting, setSubmitting] = useState(false);
-
-  // Fetch initial data
+  // Fetch all menu and entity data
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [famillesRes, categoriesRes, repasRes, boissonsRes] = await Promise.allSettled([
+      const [famillesRes, categoriesRes, repasRes, boissonsRes, displayRes] = await Promise.allSettled([
         listFamilles(),
         listAvailableCategories(),
         listRepas(),
-        listBoissons()
+        listBoissons(),
+        getPublicMenuDisplay()
       ]);
 
       if (famillesRes.status === "fulfilled") setFamilles(famillesRes.value.data);
       if (categoriesRes.status === "fulfilled") setCategories(categoriesRes.value.data);
-      if (repasRes.status === "fulfilled") setAvailableRepas(repasRes.value.data);
-      if (boissonsRes.status === "fulfilled") setAvailableBoissons(boissonsRes.value.data);
+      if (repasRes.status === "fulfilled") setAllRestaurantRepas(repasRes.value.data);
+      if (boissonsRes.status === "fulfilled") setAllRestaurantBoissons(boissonsRes.value.data);
 
+      if (displayRes.status === "fulfilled" && displayRes.value.data?.restaurants?.length) {
+        const resto = displayRes.value.data.restaurants[0];
+        setDisplayRestaurant(resto);
+        setMenuRepasItems(resto.repas || []);
+        setMenuBoissonItems(resto.boissons || []);
+      } else {
+        setDisplayRestaurant(null);
+        setMenuRepasItems([]);
+        setMenuBoissonItems([]);
+      }
     } catch (err: any) {
-      console.error(err);
-      setError("Impossible de charger les données du menu.");
+      console.error("Error fetching menu data:", err);
+      setError("Impossible de charger l'ensemble des données du menu.");
     } finally {
       setLoading(false);
     }
@@ -108,7 +150,18 @@ export const MenuView: React.FC = () => {
     fetchData();
   }, []);
 
-  // Famille handlers
+  // Clear toast feedback automatically
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess(null);
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, error]);
+
+  // --- Handlers: Familles ---
   const handleSaveFamille = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -129,7 +182,7 @@ export const MenuView: React.FC = () => {
       setFamilleNom("");
       setFamilleOrdre(0);
       setEditingFamille(null);
-      fetchData();
+      await fetchData();
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.detail?.[0]?.msg || err.response?.data?.detail || "Échec de l'enregistrement de la famille.");
@@ -143,14 +196,14 @@ export const MenuView: React.FC = () => {
     try {
       await deleteFamille(id);
       setSuccess("Famille supprimée avec succès.");
-      fetchData();
+      await fetchData();
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.detail || "Erreur lors de la suppression de la famille.");
     }
   };
 
-  // Image Upload handler
+  // --- Handlers: Famille Images ---
   const handleUploadImage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uploadFile || !selectedFamilleForUpload) {
@@ -168,10 +221,34 @@ export const MenuView: React.FC = () => {
       setUploadFile(null);
       setSelectedFamilleForUpload("");
       setUploadOrdre(0);
-      fetchData();
+      await fetchData();
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.detail || "Échec du téléversement de l'image.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditImage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingImage) return;
+
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await updateFamilleImage(editingImage.id, editImageFile, editImageOrdre);
+      setSuccess("Image mise à jour avec succès !");
+      setIsEditImageModalOpen(false);
+      setEditingImage(null);
+      setEditImageFile(null);
+      setEditImageOrdre(0);
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail || "Échec de la modification de l'image.");
     } finally {
       setSubmitting(false);
     }
@@ -182,329 +259,770 @@ export const MenuView: React.FC = () => {
     try {
       await deleteFamilleImage(imageId);
       setSuccess("Image supprimée avec succès.");
-      fetchData();
+      await fetchData();
     } catch (err: any) {
       console.error(err);
       setError("Erreur lors de la suppression de l'image.");
     }
   };
 
-  // Repas handlers
-  const handleCreateMenuRepas = async (e: React.FormEvent) => {
+  // --- Handlers: Repas au Menu ---
+  const handleSaveMenuRepas = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRepasId || !selectedCategorieId) {
-      setError("Sélectionnez un repas et une catégorie.");
-      return;
-    }
     setSubmitting(true);
     setError(null);
     setSuccess(null);
 
     try {
-      await createMenuRepas({
-        repasId: selectedRepasId,
-        menuCategorieId: selectedCategorieId,
-        ordre: repasOrdre
-      });
-      setSuccess("Repas ajouté au menu avec succès !");
+      if (editingMenuRepas) {
+        await updateMenuRepas(editingMenuRepas.id, {
+          menuCategorieId: selectedCategorieId || editingMenuRepas.menuCategorieId,
+          repasId: selectedRepasId || editingMenuRepas.repasId,
+          ordre: repasOrdre
+        });
+        setSuccess("Plat du menu mis à jour avec succès !");
+      } else {
+        if (!selectedRepasId || !selectedCategorieId) {
+          setError("Veuillez sélectionner un repas et une catégorie.");
+          setSubmitting(false);
+          return;
+        }
+        await createMenuRepas({
+          repasId: selectedRepasId,
+          menuCategorieId: selectedCategorieId,
+          ordre: repasOrdre
+        });
+        setSuccess("Plat ajouté au menu avec succès !");
+      }
       setIsRepasModalOpen(false);
+      setEditingMenuRepas(null);
       setSelectedRepasId("");
       setSelectedCategorieId("");
       setRepasOrdre(0);
-      fetchData();
+      await fetchData();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || "Échec de l'ajout du repas au menu.");
+      setError(err.response?.data?.detail || "Échec de l'enregistrement du plat au menu.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Boisson handlers
-  const handleCreateMenuBoisson = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedBoissonId) {
-      setError("Sélectionnez une boisson.");
-      return;
+  const handleDeleteMenuRepas = async (id: string) => {
+    if (!window.confirm("Retirer ce plat du menu ?")) return;
+    try {
+      await deleteMenuRepas(id);
+      setSuccess("Plat retiré du menu avec succès.");
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail || "Erreur lors de la suppression du plat du menu.");
     }
+  };
+
+  // --- Handlers: Boissons au Menu ---
+  const handleSaveMenuBoisson = async (e: React.FormEvent) => {
+    e.preventDefault();
     setSubmitting(true);
     setError(null);
     setSuccess(null);
 
     try {
-      await createMenuBoisson({
-        boissonId: selectedBoissonId,
-        imageUrl: boissonImageUrl || null,
-        ordre: boissonOrdre
-      });
-      setSuccess("Boisson ajoutée au menu avec succès !");
+      if (editingMenuBoisson) {
+        await updateMenuBoisson(editingMenuBoisson.id, {
+          boissonId: selectedBoissonId || editingMenuBoisson.boissonId,
+          imageUrl: boissonImageUrl || null,
+          ordre: boissonOrdre
+        });
+        setSuccess("Boisson du menu mise à jour avec succès !");
+      } else {
+        if (!selectedBoissonId) {
+          setError("Veuillez sélectionner une boisson.");
+          setSubmitting(false);
+          return;
+        }
+        await createMenuBoisson({
+          boissonId: selectedBoissonId,
+          imageUrl: boissonImageUrl || null,
+          ordre: boissonOrdre
+        });
+        setSuccess("Boisson ajoutée au menu avec succès !");
+      }
       setIsBoissonModalOpen(false);
+      setEditingMenuBoisson(null);
       setSelectedBoissonId("");
       setBoissonImageUrl("");
       setBoissonOrdre(0);
-      fetchData();
+      await fetchData();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || "Échec de l'ajout de la boisson au menu.");
+      setError(err.response?.data?.detail || "Échec de l'enregistrement de la boisson au menu.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteMenuBoisson = async (id: string) => {
+    if (!window.confirm("Retirer cette boisson du menu ?")) return;
+    try {
+      await deleteMenuBoisson(id);
+      setSuccess("Boisson retirée du menu avec succès.");
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail || "Erreur lors de la suppression de la boisson du menu.");
     }
   };
 
   return (
     <div className="space-y-8">
-      {/* Header & Main Actions */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      {/* Header & Main Mode Toggle */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-extrabold text-text-primary-light dark:text-text-primary-dark tracking-tight">
-            Gestion du Menu
+            Menu
           </h2>
           <p className="text-text-secondary-light dark:text-text-secondary-dark mt-1">
-            Organisez les familles, catégories, repas, boissons et images de votre carte.
+            Gérez la carte de votre restaurant et visualisez l'aperçu du menu.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3 items-center">
+        {/* Mode Switch: Gestion vs Aperçu */}
+        <div className="flex items-center gap-2 p-1.5 bg-black/5 dark:bg-white/5 backdrop-blur-md rounded-2xl border border-white/10">
           <button
-            onClick={() => navigate('/explore')}
-            className="inline-flex items-center gap-2 px-5 py-3 glass-capsule border border-white/10 hover:border-accent-light/50 text-text-primary-light dark:text-text-primary-dark rounded-2xl font-bold transition-all active:scale-[0.98]"
+            onClick={() => setTopMode("gestion")}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              topMode === "gestion"
+                ? "bg-accent-light text-white shadow-lg shadow-accent-light/20"
+                : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
+            }`}
           >
-            <BookOpen size={18} className="text-accent-light" />
-            Aperçu Public
+            <Settings size={18} />
+            Gestion du menu
           </button>
-
           <button
-            onClick={() => {
-              setEditingFamille(null);
-              setFamilleNom("");
-              setFamilleOrdre(0);
-              setIsFamilleModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 px-5 py-3 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-accent-light/20 active:scale-[0.98]"
+            onClick={() => setTopMode("apercu")}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              topMode === "apercu"
+                ? "bg-accent-light text-white shadow-lg shadow-accent-light/20"
+                : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
+            }`}
           >
-            <FolderPlus size={18} />
-            Nouvelle Famille
-          </button>
-
-          <button
-            onClick={() => {
-              setIsUploadModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 px-5 py-3 glass-capsule border border-accent-light/30 hover:bg-accent-light/10 text-accent-light rounded-2xl font-bold transition-all active:scale-[0.98]"
-          >
-            <Upload size={18} />
-            Téléverser Image
+            <Eye size={18} />
+            Aperçu du menu
           </button>
         </div>
       </div>
 
+      {/* Global Alerts */}
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm font-medium">
-          {error}
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm font-medium flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)}><X size={16} /></button>
         </div>
       )}
 
       {success && (
         <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-500 text-sm font-medium flex items-center gap-2">
           <CheckCircle2 size={18} />
-          {success}
+          <span>{success}</span>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex border-b border-black/10 dark:border-white/10 gap-6">
-        <button
-          onClick={() => setActiveTab("familles")}
-          className={`pb-4 text-sm font-bold flex items-center gap-2 transition-colors relative ${
-            activeTab === "familles"
-              ? "text-accent-light border-b-2 border-accent-light"
-              : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
-          }`}
-        >
-          <Layers size={18} />
-          Familles & Images ({familles.length})
-        </button>
-
-        <button
-          onClick={() => setActiveTab("repas")}
-          className={`pb-4 text-sm font-bold flex items-center gap-2 transition-colors relative ${
-            activeTab === "repas"
-              ? "text-accent-light border-b-2 border-accent-light"
-              : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
-          }`}
-        >
-          <Utensils size={18} />
-          Repas au Menu
-        </button>
-
-        <button
-          onClick={() => setActiveTab("boissons")}
-          className={`pb-4 text-sm font-bold flex items-center gap-2 transition-colors relative ${
-            activeTab === "boissons"
-              ? "text-accent-light border-b-2 border-accent-light"
-              : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
-          }`}
-        >
-          <Wine size={18} />
-          Boissons au Menu
-        </button>
-      </div>
-
-      {/* Content based on Active Tab */}
       {loading ? (
-        <div className="flex items-center justify-center p-12">
+        <div className="flex items-center justify-center p-16">
           <Loader2 className="w-8 h-8 text-accent-light animate-spin" />
         </div>
-      ) : activeTab === "familles" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {familles.map((famille) => (
-            <motion.div
-              key={famille.id}
-              whileHover={{ y: -4 }}
-              className="glass-card-premium p-6 flex flex-col justify-between space-y-4"
-            >
-              <div>
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
-                    {famille.nom}
+      ) : topMode === "gestion" ? (
+        /* ==================== GESTION DU MENU ==================== */
+        <div className="space-y-6">
+          {/* Sub-Tabs */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-black/10 dark:border-white/10 pb-2">
+            <div className="flex gap-6">
+              <button
+                onClick={() => setGestionTab("familles")}
+                className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative ${
+                  gestionTab === "familles"
+                    ? "text-accent-light border-b-2 border-accent-light"
+                    : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
+                }`}
+              >
+                <Layers size={18} />
+                Familles & Images ({familles.length})
+              </button>
+
+              <button
+                onClick={() => setGestionTab("repas")}
+                className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative ${
+                  gestionTab === "repas"
+                    ? "text-accent-light border-b-2 border-accent-light"
+                    : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
+                }`}
+              >
+                <Utensils size={18} />
+                Catégories & Repas ({menuRepasItems.length})
+              </button>
+
+              <button
+                onClick={() => setGestionTab("boissons")}
+                className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative ${
+                  gestionTab === "boissons"
+                    ? "text-accent-light border-b-2 border-accent-light"
+                    : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
+                }`}
+              >
+                <Wine size={18} />
+                Boissons ({menuBoissonItems.length})
+              </button>
+            </div>
+
+            {/* Contextual Action Button based on active sub-tab */}
+            <div>
+              {gestionTab === "familles" && (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setEditingFamille(null);
+                      setFamilleNom("");
+                      setFamilleOrdre(0);
+                      setIsFamilleModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-[0.98]"
+                  >
+                    <FolderPlus size={16} />
+                    Ajouter une famille
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedFamilleForUpload(familles[0]?.id || "");
+                      setUploadFile(null);
+                      setUploadOrdre(0);
+                      setIsUploadModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 glass-capsule border border-accent-light/30 text-accent-light hover:bg-accent-light/10 rounded-xl font-bold text-sm transition-all active:scale-[0.98]"
+                  >
+                    <Upload size={16} />
+                    Ajouter une image
+                  </button>
+                </div>
+              )}
+
+              {gestionTab === "repas" && (
+                <button
+                  onClick={() => {
+                    setEditingMenuRepas(null);
+                    setSelectedRepasId("");
+                    setSelectedCategorieId(categories[0] || "");
+                    setRepasOrdre(0);
+                    setIsRepasModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-[0.98]"
+                >
+                  <Plus size={16} />
+                  Ajouter un plat au menu
+                </button>
+              )}
+
+              {gestionTab === "boissons" && (
+                <button
+                  onClick={() => {
+                    setEditingMenuBoisson(null);
+                    setSelectedBoissonId("");
+                    setBoissonImageUrl("");
+                    setBoissonOrdre(0);
+                    setIsBoissonModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-[0.98]"
+                >
+                  <Plus size={16} />
+                  Ajouter une boisson au menu
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Sub-Tab 1: Familles & Images */}
+          {gestionTab === "familles" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {familles.map((famille) => (
+                <motion.div
+                  key={famille.id}
+                  whileHover={{ y: -4 }}
+                  className="glass-card-premium p-6 flex flex-col justify-between space-y-4"
+                >
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                        {famille.nom}
+                      </h3>
+                      <span className="text-xs px-2.5 py-1 bg-white/10 rounded-full font-semibold text-text-secondary-light dark:text-text-secondary-dark">
+                        Ordre: {famille.ordre}
+                      </span>
+                    </div>
+
+                    {/* Images gallery */}
+                    {famille.images && famille.images.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-2 my-4">
+                        {famille.images.map((img) => (
+                          <div key={img.id} className="relative group/img rounded-xl overflow-hidden h-28 bg-black/20 border border-white/10">
+                            <img src={img.imageUrl} alt={famille.nom} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingImage(img);
+                                  setEditImageFile(null);
+                                  setEditImageOrdre(img.ordre || 0);
+                                  setIsEditImageModalOpen(true);
+                                }}
+                                className="p-1.5 bg-accent-light text-white rounded-lg hover:scale-110 transition-transform"
+                                title="Remplacer / Modifier"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteImage(img.id)}
+                                className="p-1.5 bg-red-500 text-white rounded-lg hover:scale-110 transition-transform"
+                                title="Supprimer"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                            <span className="absolute bottom-1 right-1 text-[10px] bg-black/60 px-1.5 py-0.5 rounded text-white">
+                              ord: {img.ordre}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-6 my-4 rounded-xl border border-dashed border-white/10 text-center text-xs text-text-secondary-light dark:text-text-secondary-dark flex flex-col items-center justify-center gap-2">
+                        <ImageIcon size={20} className="opacity-40" />
+                        <span>Aucune image associée</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/5">
+                    <button
+                      onClick={() => {
+                        setSelectedFamilleForUpload(famille.id);
+                        setUploadFile(null);
+                        setUploadOrdre(0);
+                        setIsUploadModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-capsule text-xs font-bold text-accent-light hover:bg-accent-light/10 transition-colors"
+                    >
+                      <Upload size={14} />
+                      Image
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingFamille(famille);
+                          setFamilleNom(famille.nom);
+                          setFamilleOrdre(famille.ordre);
+                          setIsFamilleModalOpen(true);
+                        }}
+                        className="p-2 rounded-xl glass-capsule text-text-primary-light dark:text-text-primary-dark hover:bg-white/10 transition-colors"
+                        title="Modifier la famille"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteFamille(famille.id)}
+                        className="p-2 rounded-xl glass-capsule text-red-500 hover:bg-red-500/10 transition-colors"
+                        title="Supprimer la famille"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+
+              {familles.length === 0 && (
+                <div className="glass-card-premium p-12 text-center col-span-full">
+                  <Layers className="w-12 h-12 text-text-secondary-light dark:text-text-secondary-dark mx-auto mb-4 opacity-50" />
+                  <p className="text-text-secondary-light dark:text-text-secondary-dark font-medium">
+                    Aucune famille de menu configurée.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sub-Tab 2: Catégories & Repas */}
+          {gestionTab === "repas" && (
+            <div className="space-y-6">
+              {/* Category Info */}
+              <div className="glass-card-premium p-4 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider">
+                    Catégories disponibles de l'API
+                  </h4>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {categories.map((cat, idx) => (
+                      <span key={idx} className="px-3 py-1 bg-accent-light/10 text-accent-light border border-accent-light/20 rounded-full text-xs font-semibold">
+                        {cat}
+                      </span>
+                    ))}
+                    {categories.length === 0 && (
+                      <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark italic">
+                        Aucune catégorie retournée par l'API.
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Table / List of Menu Repas */}
+              <div className="glass-card-premium overflow-hidden">
+                <div className="p-6 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
+                  <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">
+                    Plats actuellement au Menu
                   </h3>
-                  <span className="text-xs px-2.5 py-1 bg-white/10 rounded-full font-semibold text-text-secondary-light dark:text-text-secondary-dark">
-                    Ordre: {famille.ordre}
+                  <span className="text-xs font-semibold px-3 py-1 bg-white/10 rounded-full text-text-secondary-light dark:text-text-secondary-dark">
+                    {menuRepasItems.length} plat(s)
                   </span>
                 </div>
 
-                {famille.images && famille.images.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2 my-4">
-                    {famille.images.map((img) => (
-                      <div key={img.id} className="relative group/img rounded-xl overflow-hidden h-24 bg-black/20">
-                        <img src={img.imageUrl} alt={famille.nom} className="w-full h-full object-cover" />
-                        <button
-                          onClick={() => handleDeleteImage(img.id)}
-                          className="absolute top-1 right-1 p-1 bg-red-500/80 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity"
-                          title="Supprimer cette image"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 my-4 rounded-xl border border-dashed border-white/10 text-center text-xs text-text-secondary-light dark:text-text-secondary-dark flex items-center justify-center gap-2">
-                    <ImageIcon size={16} />
-                    Aucune image pour cette famille
-                  </div>
-                )}
-              </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 text-xs text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
+                        <th className="p-4">Plat</th>
+                        <th className="p-4">Catégorie ID / Nom</th>
+                        <th className="p-4">Ordre</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black/5 dark:divide-white/5 text-sm">
+                      {menuRepasItems.map((item) => {
+                        const matchedRepas = allRestaurantRepas.find((r) => r.id === item.repasId);
+                        const displayName = String((item as any).nomRepas || (item as any).nom || matchedRepas?.nomRepas || item.repasId);
+                        const displayPrice = (item as any).prix || matchedRepas?.prix;
+                        const catLabel = String((item as any).menuCategorieId || (item as any).categorie || "N/A");
 
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-black/5 dark:border-white/5">
-                <button
-                  onClick={() => {
-                    setSelectedFamilleForUpload(famille.id);
-                    setIsUploadModalOpen(true);
-                  }}
-                  className="p-2 rounded-xl glass-capsule text-accent-light hover:bg-accent-light/10 transition-colors"
-                  title="Téléverser une image"
-                >
-                  <Upload size={16} />
-                </button>
-                <button
-                  onClick={() => {
-                    setEditingFamille(famille);
-                    setFamilleNom(famille.nom);
-                    setFamilleOrdre(famille.ordre);
-                    setIsFamilleModalOpen(true);
-                  }}
-                  className="p-2 rounded-xl glass-capsule text-text-primary-light dark:text-text-primary-dark hover:bg-white/10 transition-colors"
-                  title="Modifier"
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button
-                  onClick={() => handleDeleteFamille(famille.id)}
-                  className="p-2 rounded-xl glass-capsule text-red-500 hover:bg-red-500/10 transition-colors"
-                  title="Supprimer"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </motion.div>
-          ))}
+                        return (
+                          <tr key={item.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                            <td className="p-4 font-semibold text-text-primary-light dark:text-text-primary-dark">
+                              <div>{displayName}</div>
+                              {displayPrice && (
+                                <div className="text-xs font-bold text-accent-light">
+                                  {Number(displayPrice).toLocaleString()} F CFA
+                                </div>
+                              )}
+                            </td>
+                            <td className="p-4 text-text-secondary-light dark:text-text-secondary-dark font-medium">
+                              {catLabel}
+                            </td>
+                            <td className="p-4">
+                              <span className="px-2.5 py-1 bg-white/10 rounded-full text-xs font-bold">
+                                {item.ordre}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right space-x-2">
+                              <button
+                                onClick={() => {
+                                  setEditingMenuRepas(item);
+                                  setSelectedRepasId(item.repasId);
+                                  setSelectedCategorieId(item.menuCategorieId || categories[0] || "");
+                                  setRepasOrdre(item.ordre || 0);
+                                  setIsRepasModalOpen(true);
+                                }}
+                                className="p-2 rounded-xl glass-capsule text-text-primary-light dark:text-text-primary-dark hover:bg-white/10 transition-colors"
+                                title="Modifier l'association / l'ordre"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMenuRepas(item.id)}
+                                className="p-2 rounded-xl glass-capsule text-red-500 hover:bg-red-500/10 transition-colors"
+                                title="Retirer du menu"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
 
-          {familles.length === 0 && (
-            <div className="glass-card-premium p-12 text-center col-span-full">
-              <Layers className="w-12 h-12 text-text-secondary-light dark:text-text-secondary-dark mx-auto mb-4 opacity-50" />
-              <p className="text-text-secondary-light dark:text-text-secondary-dark font-medium">
-                Aucune famille de menu configurée pour le moment.
-              </p>
+                      {menuRepasItems.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="p-8 text-center text-text-secondary-light dark:text-text-secondary-dark">
+                            Aucun plat figurant dans le menu actuellement. Cliquez sur "+ Ajouter un plat au menu" pour associer un repas existant.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-Tab 3: Boissons */}
+          {gestionTab === "boissons" && (
+            <div className="space-y-6">
+              <div className="glass-card-premium overflow-hidden">
+                <div className="p-6 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
+                  <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">
+                    Boissons actuellement au Menu
+                  </h3>
+                  <span className="text-xs font-semibold px-3 py-1 bg-white/10 rounded-full text-text-secondary-light dark:text-text-secondary-dark">
+                    {menuBoissonItems.length} boisson(s)
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 text-xs text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
+                        <th className="p-4">Boisson</th>
+                        <th className="p-4">Image</th>
+                        <th className="p-4">Ordre</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black/5 dark:divide-white/5 text-sm">
+                      {menuBoissonItems.map((item) => {
+                        const matchedBoisson = allRestaurantBoissons.find((b) => b.id === item.boissonId);
+                        const displayName = String((item as any).nomBoisson || (item as any).nom || matchedBoisson?.nomBoisson || item.boissonId);
+                        const displayPrice = (item as any).prix || matchedBoisson?.prix;
+
+                        return (
+                          <tr key={item.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                            <td className="p-4 font-semibold text-text-primary-light dark:text-text-primary-dark">
+                              <div>{displayName}</div>
+                              {displayPrice && (
+                                <div className="text-xs font-bold text-accent-light">
+                                  {Number(displayPrice).toLocaleString()} F CFA
+                                </div>
+                              )}
+                            </td>
+                            <td className="p-4">
+                              {item.imageUrl ? (
+                                <img src={item.imageUrl} alt={displayName} className="w-10 h-10 object-cover rounded-xl border border-white/10" />
+                              ) : (
+                                <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark italic">S/I</span>
+                              )}
+                            </td>
+                            <td className="p-4">
+                              <span className="px-2.5 py-1 bg-white/10 rounded-full text-xs font-bold">
+                                {item.ordre}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right space-x-2">
+                              <button
+                                onClick={() => {
+                                  setEditingMenuBoisson(item);
+                                  setSelectedBoissonId(item.boissonId);
+                                  setBoissonImageUrl(item.imageUrl || "");
+                                  setBoissonOrdre(item.ordre || 0);
+                                  setIsBoissonModalOpen(true);
+                                }}
+                                className="p-2 rounded-xl glass-capsule text-text-primary-light dark:text-text-primary-dark hover:bg-white/10 transition-colors"
+                                title="Modifier l'image / l'ordre"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMenuBoisson(item.id)}
+                                className="p-2 rounded-xl glass-capsule text-red-500 hover:bg-red-500/10 transition-colors"
+                                title="Retirer du menu"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {menuBoissonItems.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="p-8 text-center text-text-secondary-light dark:text-text-secondary-dark">
+                            Aucune boisson figurant dans le menu actuellement. Cliquez sur "+ Ajouter une boisson au menu" pour ajouter une boisson existante.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
         </div>
-      ) : activeTab === "repas" ? (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">
-              Catégories & Plats au Menu
-            </h3>
-            <button
-              onClick={() => setIsRepasModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-xl font-bold text-sm transition-all"
-            >
-              <Plus size={16} />
-              Ajouter un plat au menu
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {availableRepas.map((repas) => (
-              <div key={repas.id} className="glass-card-premium p-6 flex flex-col justify-between">
-                <div>
-                  <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-1">
-                    {repas.nomRepas}
-                  </h4>
-                  <p className="text-sm font-semibold text-accent-light">
-                    {repas.prix ? `${repas.prix.toLocaleString()} F CFA` : 'Prix non renseigné'}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       ) : (
-        <div className="space-y-6">
+        /* ==================== APERÇU DU MENU (GET /menus/display) ==================== */
+        <div className="space-y-8">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">
-              Boissons au Menu
+            <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
+              <Eye className="text-accent-light" />
+              Aperçu du Menu Public
             </h3>
             <button
-              onClick={() => setIsBoissonModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-xl font-bold text-sm transition-all"
+              onClick={fetchData}
+              className="inline-flex items-center gap-2 px-4 py-2 glass-capsule text-xs font-bold text-text-primary-light dark:text-text-primary-dark hover:bg-white/10 rounded-xl transition-all"
             >
-              <Plus size={16} />
-              Ajouter une boisson au menu
+              <RefreshCw size={14} />
+              Actualiser l'aperçu
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {availableBoissons.map((boisson) => (
-              <div key={boisson.id} className="glass-card-premium p-6 flex flex-col justify-between">
-                <div>
-                  <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-1">
-                    {boisson.nomBoisson}
-                  </h4>
-                  <p className="text-sm font-semibold text-accent-light">
-                    {boisson.prix ? `${boisson.prix.toLocaleString()} F CFA` : 'Prix non renseigné'}
-                  </p>
+          {displayRestaurant ? (
+            <div className="space-y-8">
+              {/* Restaurant Header Card */}
+              <div className="glass-card-premium p-8 flex flex-col md:flex-row gap-8 items-center border border-accent-light/20">
+                <div className="w-full md:w-56 h-56 rounded-3xl overflow-hidden bg-gradient-to-tr from-slate-800 to-slate-950 flex items-center justify-center shadow-inner">
+                  {displayRestaurant.image ? (
+                    <img src={displayRestaurant.image} alt={displayRestaurant.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Building2 className="w-16 h-16 text-white/20" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <h2 className="text-3xl font-extrabold text-text-primary-light dark:text-text-primary-dark">
+                    {displayRestaurant.name || "Mon Restaurant"}
+                  </h2>
+                  {displayRestaurant.description && (
+                    <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm max-w-2xl">
+                      {displayRestaurant.description}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-4 pt-2">
+                    {displayRestaurant.cuisine && (
+                      <div className="flex items-center gap-2 text-xs font-semibold text-accent-light bg-accent-light/10 px-3 py-1.5 rounded-full">
+                        <UtensilsCrossed size={14} />
+                        <span>{displayRestaurant.cuisine}</span>
+                      </div>
+                    )}
+                    {displayRestaurant.address && (
+                      <div className="flex items-center gap-2 text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark bg-white/5 px-3 py-1.5 rounded-full">
+                        <MapPin size={14} />
+                        <span>{displayRestaurant.address}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Familles Banner/Gallery Preview */}
+              {familles.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">
+                    Familles
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {familles.map((fam) => (
+                      <div key={fam.id} className="glass-card-premium p-4 flex flex-col items-center text-center space-y-2">
+                        {fam.images && fam.images.length > 0 ? (
+                          <img src={fam.images[0].imageUrl} alt={fam.nom} className="w-full h-24 object-cover rounded-xl" />
+                        ) : (
+                          <div className="w-full h-24 rounded-xl bg-white/5 flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark">
+                            <ImageIcon size={24} className="opacity-30" />
+                          </div>
+                        )}
+                        <span className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark">
+                          {fam.nom}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Plats & Boissons Display */}
+              <div className="space-y-6">
+                <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark border-b border-black/5 dark:border-white/5 pb-2">
+                  Plats au Menu
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {menuRepasItems.map((item) => {
+                    const matched = allRestaurantRepas.find((r) => r.id === item.repasId);
+                    const name = String((item as any).nomRepas || (item as any).nom || matched?.nomRepas || "Plat");
+                    const price = (item as any).prix || matched?.prix;
+                    const catLabel = String((item as any).menuCategorieId || (item as any).categorie || "Général");
+
+                    return (
+                      <div key={item.id} className="glass-card-premium p-6 flex flex-col justify-between">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            <h5 className="font-bold text-base text-text-primary-light dark:text-text-primary-dark">
+                              {name}
+                            </h5>
+                            {price && (
+                              <span className="text-sm font-bold text-accent-light">
+                                {Number(price).toLocaleString()} F CFA
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                            Catégorie: {catLabel}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {menuRepasItems.length === 0 && (
+                    <div className="col-span-full p-8 text-center glass-card-premium text-text-secondary-light dark:text-text-secondary-dark">
+                      Aucun plat disponible pour l'aperçu.
+                    </div>
+                  )}
+                </div>
+
+                <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark border-b border-black/5 dark:border-white/5 pb-2 pt-6">
+                  Boissons au Menu
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {menuBoissonItems.map((item) => {
+                    const matched = allRestaurantBoissons.find((b) => b.id === item.boissonId);
+                    const name = String((item as any).nomBoisson || (item as any).nom || matched?.nomBoisson || "Boisson");
+                    const price = (item as any).prix || matched?.prix;
+
+                    return (
+                      <div key={item.id} className="glass-card-premium p-6 flex items-center gap-4">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={name} className="w-16 h-16 object-cover rounded-2xl border border-white/10" />
+                        ) : (
+                          <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark">
+                            <Wine size={24} className="opacity-30" />
+                          </div>
+                        )}
+                        <div className="flex-1 space-y-1">
+                          <h5 className="font-bold text-base text-text-primary-light dark:text-text-primary-dark">
+                            {name}
+                          </h5>
+                          {price && (
+                            <p className="text-xs font-bold text-accent-light">
+                              {Number(price).toLocaleString()} F CFA
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {menuBoissonItems.length === 0 && (
+                    <div className="col-span-full p-8 text-center glass-card-premium text-text-secondary-light dark:text-text-secondary-dark">
+                      Aucune boisson disponible pour l'aperçu.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="glass-card-premium p-12 text-center text-text-secondary-light dark:text-text-secondary-dark">
+              Aucun restaurant n'a pu être chargé pour l'aperçu public.
+            </div>
+          )}
         </div>
       )}
 
-      {/* Modal Famille (Create/Edit) */}
+      {/* ==================== MODALS ==================== */}
+
+      {/* Modal 1: Famille (Create / Edit) */}
       <AnimatePresence>
         {isFamilleModalOpen && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -576,10 +1094,10 @@ export const MenuView: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Modal Upload Image */}
+      {/* Modal 2: Upload Image */}
       <AnimatePresence>
         {isUploadModalOpen && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -590,7 +1108,7 @@ export const MenuView: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Upload className="w-5 h-5 text-accent-light" />
                   <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
-                    Téléverser une Image
+                    Ajouter une Image
                   </h3>
                 </div>
                 <button
@@ -623,7 +1141,7 @@ export const MenuView: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    Fichier Image
+                    Fichier Image (Fichier local)
                   </label>
                   <input
                     type="file"
@@ -669,10 +1187,83 @@ export const MenuView: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Modal Add Repas to Menu */}
+      {/* Modal 3: Edit Image */}
+      <AnimatePresence>
+        {isEditImageModalOpen && editingImage && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card-premium w-full max-w-lg p-8 relative overflow-hidden border border-white/20 dark:border-white/5"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2">
+                  <Edit2 className="w-5 h-5 text-accent-light" />
+                  <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                    Modifier / Remplacer L'Image
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsEditImageModalOpen(false)}
+                  className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary-light dark:text-text-secondary-dark transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditImage} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
+                    Nouveau Fichier Image (Optionnel - Laisser vide pour conserver l'image)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setEditImageFile(e.target.files?.[0] || null)}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
+                    Ordre
+                  </label>
+                  <input
+                    type="number"
+                    value={editImageOrdre}
+                    onChange={(e) => setEditImageOrdre(parseInt(e.target.value) || 0)}
+                    placeholder="0"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditImageModalOpen(false)}
+                    className="flex-1 py-3.5 glass-capsule rounded-2xl font-bold text-sm text-text-primary-light dark:text-text-primary-dark hover:scale-[1.02] transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 py-3.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-light/20 transition-all hover:scale-[1.02] disabled:opacity-50"
+                  >
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Mettre à jour"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal 4: Repas au Menu (Create / Edit) */}
       <AnimatePresence>
         {isRepasModalOpen && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -683,7 +1274,7 @@ export const MenuView: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Utensils className="w-5 h-5 text-accent-light" />
                   <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
-                    Ajouter un Plat au Menu
+                    {editingMenuRepas ? "Modifier Plat du Menu" : "Ajouter un Plat au Menu"}
                   </h3>
                 </div>
                 <button
@@ -694,21 +1285,22 @@ export const MenuView: React.FC = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleCreateMenuRepas} className="space-y-4">
+              <form onSubmit={handleSaveMenuRepas} className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    Repas
+                    Sélectionner un Repas existant
                   </label>
                   <select
                     value={selectedRepasId}
                     onChange={(e) => setSelectedRepasId(e.target.value)}
                     required
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                    disabled={!!editingMenuRepas}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm disabled:opacity-60"
                   >
-                    <option value="" className="bg-slate-900 text-white">-- Choisir un repas --</option>
-                    {availableRepas.map((r) => (
+                    <option value="" className="bg-slate-900 text-white">-- Choisir parmi les repas du restaurant --</option>
+                    {allRestaurantRepas.map((r) => (
                       <option key={r.id} value={r.id} className="bg-slate-900 text-white">
-                        {r.nomRepas} ({r.prix ? `${r.prix} F CFA` : 'S/P'})
+                        {r.nomRepas} ({r.prix ? `${r.prix.toLocaleString()} F CFA` : 'S/P'})
                       </option>
                     ))}
                   </select>
@@ -716,7 +1308,7 @@ export const MenuView: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    Catégorie
+                    Catégorie du Menu
                   </label>
                   <select
                     value={selectedCategorieId}
@@ -735,7 +1327,7 @@ export const MenuView: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    Ordre
+                    Ordre d'affichage
                   </label>
                   <input
                     type="number"
@@ -759,7 +1351,7 @@ export const MenuView: React.FC = () => {
                     disabled={submitting}
                     className="flex-1 py-3.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-light/20 transition-all hover:scale-[1.02] disabled:opacity-50"
                   >
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Ajouter"}
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Enregistrer"}
                   </button>
                 </div>
               </form>
@@ -768,10 +1360,10 @@ export const MenuView: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Modal Add Boisson to Menu */}
+      {/* Modal 5: Boisson au Menu (Create / Edit) */}
       <AnimatePresence>
         {isBoissonModalOpen && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -782,7 +1374,7 @@ export const MenuView: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Wine className="w-5 h-5 text-accent-light" />
                   <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
-                    Ajouter une Boisson au Menu
+                    {editingMenuBoisson ? "Modifier Boisson du Menu" : "Ajouter une Boisson au Menu"}
                   </h3>
                 </div>
                 <button
@@ -793,21 +1385,22 @@ export const MenuView: React.FC = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleCreateMenuBoisson} className="space-y-4">
+              <form onSubmit={handleSaveMenuBoisson} className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    Boisson
+                    Sélectionner une Boisson existante
                   </label>
                   <select
                     value={selectedBoissonId}
                     onChange={(e) => setSelectedBoissonId(e.target.value)}
                     required
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                    disabled={!!editingMenuBoisson}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm disabled:opacity-60"
                   >
-                    <option value="" className="bg-slate-900 text-white">-- Choisir une boisson --</option>
-                    {availableBoissons.map((b) => (
+                    <option value="" className="bg-slate-900 text-white">-- Choisir parmi les boissons du restaurant --</option>
+                    {allRestaurantBoissons.map((b) => (
                       <option key={b.id} value={b.id} className="bg-slate-900 text-white">
-                        {b.nomBoisson} ({b.prix ? `${b.prix} F CFA` : 'S/P'})
+                        {b.nomBoisson} ({b.prix ? `${b.prix.toLocaleString()} F CFA` : 'S/P'})
                       </option>
                     ))}
                   </select>
@@ -828,7 +1421,7 @@ export const MenuView: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    Ordre
+                    Ordre d'affichage
                   </label>
                   <input
                     type="number"
@@ -852,7 +1445,7 @@ export const MenuView: React.FC = () => {
                     disabled={submitting}
                     className="flex-1 py-3.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-light/20 transition-all hover:scale-[1.02] disabled:opacity-50"
                   >
-                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Ajouter"}
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Enregistrer"}
                   </button>
                 </div>
               </form>
