@@ -17,54 +17,6 @@ import type { RestaurantResponse } from '../../types/restaurant';
 import { Loader } from '../../components/Loader';
 import { useAuth } from '../../contexts/AuthContext';
 
-const FALLBACK_RESTAURANTS: Restaurant[] = [
-  {
-    id: 'f1',
-    name: "La Table D'Or Paris",
-    cuisine: "Gastronomie Africaine",
-    rating: 4.9,
-    image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
-    description: "Découvrez une expérience culinaire unique chez La Table D'Or Paris, proposant une sélection authentique de plats raffinés aux saveurs locales d'Afrique.",
-    address: "15 Rue de la Paix, Paris",
-    menu: [
-      { id: 'f1-m1', name: "Saga Saga", description: "Feuilles de manioc pilées avec du poisson fumé et huile de palme.", price: "4 500 F CFA", category: "Entrées" },
-      { id: 'f1-m2', name: "Poulet Yassa", description: "Poulet mariné au citron, oignons caramélisés et moutarde, servi avec du riz.", price: "7 500 F CFA", category: "Plats" },
-      { id: 'f1-m3', name: "Thiéboudienne", description: "Riz au poisson et légumes mijotés dans une sauce tomate parfumée.", price: "9 000 F CFA", category: "Plats" },
-      { id: 'f1-m4', name: "Degue", description: "Couscous de mil au yaourt parfumé à la vanille et fleur d'oranger.", price: "2 500 F CFA", category: "Desserts" }
-    ]
-  },
-  {
-    id: 'f2',
-    name: "Lumina Gourmet",
-    cuisine: "Cuisine Locale & Fusion",
-    rating: 4.8,
-    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80",
-    description: "Une cuisine créative chez Lumina Gourmet mariant avec perfection ingrédients traditionnels et techniques contemporaines.",
-    address: "42 Boulevard Haussmann, Paris",
-    menu: [
-      { id: 'f2-m1', name: "Pastels de Poisson", description: "Beignets farcis au poisson épicé, servis avec une sauce piquante.", price: "3 000 F CFA", category: "Entrées" },
-      { id: 'f2-m2', name: "Braisé de Capitaine", description: "Filet de capitaine braisé aux herbes, bananes pesées et piment.", price: "8 500 F CFA", category: "Plats" },
-      { id: 'f2-m3', name: "Mafé de Bœuf", description: "Bœuf mijoté dans une sauce onctueuse à la pâte d'arachide et légumes.", price: "8 000 F CFA", category: "Plats" },
-      { id: 'f2-m4', name: "Flan au Coco", description: "Flan maison au lait de coco et caramel ambré.", price: "3 000 F CFA", category: "Desserts" }
-    ]
-  },
-  {
-    id: 'f3',
-    name: "Le Grill Tropical",
-    cuisine: "Grillades & Spécialités",
-    rating: 4.7,
-    image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80",
-    description: "Des grillades exquises et viandes savoureuses cuites au feu de bois à déguster chez Le Grill Tropical.",
-    address: "88 Avenue des Champs-Élysées, Paris",
-    menu: [
-      { id: 'f3-m1', name: "Alloco au Fromage", description: "Bananes plantains frites accompagnées de dés de fromage local.", price: "2 500 F CFA", category: "Entrées" },
-      { id: 'f3-m2', name: "Choukouya d'Agneau", description: "Morceaux d'agneau grillés et assaisonnés d'un mélange d'épices secrètes.", price: "9 500 F CFA", category: "Plats" },
-      { id: 'f3-m3', name: "Kédjénou de Poulet", description: "Ragoût de poulet cuit à l'étouffée avec légumes frais et piment.", price: "7 500 F CFA", category: "Plats" },
-      { id: 'f3-m4', name: "Salade de Fruits Exotiques", description: "Mangue, ananas, papaye et passion rafraîchis au citron vert.", price: "3 500 F CFA", category: "Desserts" }
-    ]
-  }
-];
-
 export const PublicMenu: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -78,6 +30,7 @@ export const PublicMenu: React.FC = () => {
     const fetchRestaurants = async () => {
       try {
         setLoading(true);
+        setError(null);
         let displayRestaurants: Restaurant[] = [];
 
         try {
@@ -90,9 +43,9 @@ export const PublicMenu: React.FC = () => {
                 r.repas.forEach((item: any) => {
                   menuItems.push({
                     id: item.id || `repas-${Math.random()}`,
-                    name: item.nomRepas || item.nom || "Plat Gastronomique",
-                    description: item.description || "Un plat savoureux préparé avec soin par le chef.",
-                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "5 000 F CFA",
+                    name: item.nomRepas || item.nom || "Plat",
+                    description: item.description || "",
+                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "Prix non disponible",
                     category: item.categorie || "Plats"
                   });
                 });
@@ -102,104 +55,54 @@ export const PublicMenu: React.FC = () => {
                 r.boissons.forEach((item: any) => {
                   menuItems.push({
                     id: item.id || `boisson-${Math.random()}`,
-                    name: item.nomBoisson || item.nom || "Boisson Rafraîchissante",
-                    description: item.description || "Boisson fraîche pour accompagner votre repas.",
-                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "1 500 F CFA",
+                    name: item.nomBoisson || item.nom || "Boisson",
+                    description: item.description || "",
+                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "Prix non disponible",
                     category: "Boissons"
                   });
                 });
               }
 
-              const defaultMenu = [
-                { id: `${r.id || index}-m1`, name: "Saga Saga", description: "Feuilles de manioc pilées avec du poisson fumé et huile de palme.", price: "4 500 F CFA", category: "Entrées" },
-                { id: `${r.id || index}-m2`, name: "Poulet Yassa", description: "Poulet mariné au citron, oignons caramélisés et moutarde, servi avec du riz.", price: "7 500 F CFA", category: "Plats" },
-                { id: `${r.id || index}-m3`, name: "Thiéboudienne", description: "Riz au poisson et légumes mijotés dans une sauce tomate parfumée.", price: "9 000 F CFA", category: "Plats" },
-                { id: `${r.id || index}-m4`, name: "Degue", description: "Couscous de mil au yaourt parfumé à la vanille et fleur d'oranger.", price: "2 500 F CFA", category: "Desserts" }
-              ];
-
               return {
                 id: r.id || `resto-${index}`,
-                name: r.name || "Restaurant Gastronomique",
-                cuisine: r.cuisine || "Cuisine Africaine & Fusion",
+                name: r.name || "Restaurant",
+                cuisine: r.cuisine || "Cuisine Locale",
                 rating: 4.8,
                 image: r.image || "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
-                description: r.description || `Découvrez l'expérience culinaire unique chez ${r.name || 'notre établissement'}.`,
-                address: r.address || "Centre-ville",
-                menu: menuItems.length > 0 ? menuItems : defaultMenu
+                description: r.description || `Bienvenue chez ${r.name || 'notre établissement'}.`,
+                address: r.address || "Adresse non renseignée",
+                menu: menuItems
               };
             });
           }
         } catch (displayErr) {
-          console.warn("Public menu display endpoint unavailable or empty, falling back:", displayErr);
+          console.warn("Public menu display endpoint failed or empty:", displayErr);
         }
 
         if (displayRestaurants.length > 0) {
           setRestaurants(displayRestaurants);
         } else {
-          // Fallback to listRestaurants
+          // Fallback to listRestaurants directly without hardcoded mock menus
           const response = await listRestaurants();
           const activeMapped = response.data
             .filter((r: RestaurantResponse) => r.isActive)
-            .map((r: RestaurantResponse, index: number) => {
-              const designOptions = [
-                {
-                  cuisine: "Gastronomie Africaine",
-                  image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
-                  description: `Découvrez une expérience culinaire unique chez ${r.name}, proposant une sélection authentique de plats raffinés aux saveurs locales d'Afrique.`,
-                  menu: [
-                    { id: `${r.id}-m1`, name: "Saga Saga", description: "Feuilles de manioc pilées avec du poisson fumé et huile de palme.", price: "4 500 F CFA", category: "Entrées" },
-                    { id: `${r.id}-m2`, name: "Poulet Yassa", description: "Poulet mariné au citron, oignons caramélisés et moutarde, servi avec du riz.", price: "7 500 F CFA", category: "Plats" },
-                    { id: `${r.id}-m3`, name: "Thiéboudienne", description: "Riz au poisson et légumes mijotés dans une sauce tomate parfumée.", price: "9 000 F CFA", category: "Plats" },
-                    { id: `${r.id}-m4`, name: "Degue", description: "Couscous de mil au yaourt parfumé à la vanille et fleur d'oranger.", price: "2 500 F CFA", category: "Desserts" }
-                  ]
-                },
-                {
-                  cuisine: "Cuisine Locale & Fusion",
-                  image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80",
-                  description: `Une cuisine créative chez ${r.name} mariant avec perfection ingrédients traditionnels et techniques contemporaines.`,
-                  menu: [
-                    { id: `${r.id}-m1`, name: "Pastels de Poisson", description: "Beignets farcis au poisson épicé, servis avec une sauce piquante.", price: "3 000 F CFA", category: "Entrées" },
-                    { id: `${r.id}-m2`, name: "Braisé de Capitaine", description: "Filet de capitaine braisé aux herbes, bananes pesées et piment.", price: "8 500 F CFA", category: "Plats" },
-                    { id: `${r.id}-m3`, name: "Mafé de Bœuf", description: "Bœuf mijoté dans une sauce onctueuse à la pâte d'arachide et légumes.", price: "8 000 F CFA", category: "Plats" },
-                    { id: `${r.id}-m4`, name: "Flan au Coco", description: "Flan maison au lait de coco et caramel ambré.", price: "3 000 F CFA", category: "Desserts" }
-                  ]
-                },
-                {
-                  cuisine: "Grillades & Spécialités",
-                  image: "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80",
-                  description: `Des grillades exquises et viandes savoureuses cuites au feu de bois à déguster chez ${r.name}.`,
-                  menu: [
-                    { id: `${r.id}-m1`, name: "Alloco au Fromage", description: "Bananes plantains frites accompagnées de dés de fromage local.", price: "2 500 F CFA", category: "Entrées" },
-                    { id: `${r.id}-m2`, name: "Choukouya d'Agneau", description: "Morceaux d'agneau grillés et assaisonnés d'un mélange d'épices secrètes.", price: "9 500 F CFA", category: "Plats" },
-                    { id: `${r.id}-m3`, name: "Kédjénou de Poulet", description: "Ragoût de poulet cuit à l'étouffée avec légumes frais et piment.", price: "7 500 F CFA", category: "Plats" },
-                    { id: `${r.id}-m4`, name: "Salade de Fruits Exotiques", description: "Mangue, ananas, papaye et passion rafraîchis au citron vert.", price: "3 500 F CFA", category: "Desserts" }
-                  ]
-                }
-              ];
+            .map((r: RestaurantResponse, index: number) => ({
+              id: r.id,
+              name: r.name,
+              cuisine: "Gastronomie Locale",
+              rating: Number((4.5 + (index % 5) * 0.1).toFixed(1)),
+              image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
+              description: `Découvrez la carte du restaurant ${r.name}.`,
+              address: r.address,
+              menu: []
+            }));
 
-              const option = designOptions[index % designOptions.length];
-              return {
-                id: r.id,
-                name: r.name,
-                cuisine: option.cuisine,
-                rating: Number((4.5 + (index % 5) * 0.1).toFixed(1)),
-                image: option.image,
-                description: option.description,
-                address: r.address,
-                menu: option.menu
-              };
-            });
-
-          if (activeMapped.length > 0) {
-            setRestaurants(activeMapped);
-          } else {
-            setRestaurants(FALLBACK_RESTAURANTS);
-          }
+          setRestaurants(activeMapped);
         }
       } catch (err) {
-        console.error("Failed to fetch restaurants, using fallback:", err);
-        setError("Impossible de charger la liste depuis le serveur. Mode secours actif.");
-        setRestaurants(FALLBACK_RESTAURANTS);
+        console.error("Failed to fetch restaurants:", err);
+        setError("Impossible de charger la liste des restaurants depuis le serveur.");
+        setRestaurants([]);
       } finally {
         setLoading(false);
       }
@@ -393,14 +296,22 @@ export const PublicMenu: React.FC = () => {
                                 </h4>
                                 <span className="text-accent-light font-bold text-lg">{item.price}</span>
                               </div>
-                              <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
-                                {item.description}
-                              </p>
+                              {item.description && (
+                                <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
+                                  {item.description}
+                                </p>
+                              )}
                             </motion.div>
                           ))}
                       </div>
                     </div>
                   ))}
+
+                  {categories.length === 0 && (
+                    <div className="glass-card-premium p-12 text-center">
+                      <p className="text-text-secondary-light dark:text-text-secondary-dark">Aucun plat ou boisson au menu pour ce restaurant.</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="glass-card-premium p-8 bg-accent-light/5 border-accent-light/20 text-center">
