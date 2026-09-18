@@ -23,7 +23,13 @@ import {
   updateRepas,
   deleteRepas,
   uploadMenuImage,
-  listAvailableCategories
+  listAvailableCategories,
+  createMenuRepas,
+  updateMenuRepas,
+  deleteMenuRepas,
+  createMenuBoisson,
+  updateMenuBoisson,
+  deleteMenuBoisson
 } from "../services";
 
 function assertEqual(actual: unknown, expected: unknown, message: string) {
@@ -154,6 +160,71 @@ async function runTests() {
   assertEqual(lastCall.method, "POST", "uploadMenuImage method");
   assertEqual(lastCall.url, "/menus/upload", "uploadMenuImage url");
   console.log("✓ POST /menus/upload");
+
+  // Test Menu Repas Endpoints
+  await createMenuRepas({
+    ordre: 0,
+    menuCategorieId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    repasId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  });
+  assertEqual(lastCall.method, "POST", "createMenuRepas method");
+  assertEqual(lastCall.url, "/menus/repas", "createMenuRepas url");
+  assertEqual(
+    lastCall.data,
+    {
+      ordre: 0,
+      menuCategorieId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      repasId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    },
+    "createMenuRepas data"
+  );
+  console.log("✓ POST /menus/repas");
+
+  await updateMenuRepas("mr-123", {
+    ordre: 1,
+    menuCategorieId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    repasId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  });
+  assertEqual(lastCall.method, "PATCH", "updateMenuRepas method");
+  assertEqual(lastCall.url, "/menus/repas/mr-123", "updateMenuRepas url");
+  console.log("✓ PATCH /menus/repas/{menu_repas_id}");
+
+  await deleteMenuRepas("mr-123");
+  assertEqual(lastCall.method, "DELETE", "deleteMenuRepas method");
+  assertEqual(lastCall.url, "/menus/repas/mr-123", "deleteMenuRepas url");
+  console.log("✓ DELETE /menus/repas/{menu_repas_id}");
+
+  // Test Menu Boissons Endpoints
+  await createMenuBoisson({
+    ordre: 0,
+    imageUrl: "https://example.com/image.png",
+    boissonId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  });
+  assertEqual(lastCall.method, "POST", "createMenuBoisson method");
+  assertEqual(lastCall.url, "/menus/boissons", "createMenuBoisson url");
+  assertEqual(
+    lastCall.data,
+    {
+      ordre: 0,
+      imageUrl: "https://example.com/image.png",
+      boissonId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    },
+    "createMenuBoisson data"
+  );
+  console.log("✓ POST /menus/boissons");
+
+  await updateMenuBoisson("mb-123", {
+    ordre: 2,
+    imageUrl: "https://example.com/updated.png"
+  });
+  assertEqual(lastCall.method, "PATCH", "updateMenuBoisson method");
+  assertEqual(lastCall.url, "/menus/boissons/mb-123", "updateMenuBoisson url");
+  console.log("✓ PATCH /menus/boissons/{menu_boisson_id}");
+
+  await deleteMenuBoisson("mb-123");
+  assertEqual(lastCall.method, "DELETE", "deleteMenuBoisson method");
+  assertEqual(lastCall.url, "/menus/boissons/mb-123", "deleteMenuBoisson url");
+  console.log("✓ DELETE /menus/boissons/{menu_boisson_id}");
 
   // Test Commandes Endpoints
   await listCommandes();
