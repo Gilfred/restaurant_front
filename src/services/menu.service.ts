@@ -30,7 +30,7 @@ export const uploadMenuImage = (file: File, familleId: string, ordre?: number) =
   const formData = new FormData();
   formData.append("file", file);
   formData.append("famille_id", familleId);
-  if (ordre !== undefined) {
+  if (ordre !== undefined && ordre !== null) {
     formData.append("ordre", ordre.toString());
   }
 

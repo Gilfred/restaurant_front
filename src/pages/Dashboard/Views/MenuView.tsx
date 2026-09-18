@@ -56,8 +56,11 @@ export const MenuView: React.FC = () => {
   // Top-level mode: "gestion" | "apercu"
   const [topMode, setTopMode] = useState<"gestion" | "apercu">("gestion");
 
-  // Sub-tab under "gestion": "familles" | "repas" | "boissons"
-  const [gestionTab, setGestionTab] = useState<"familles" | "repas" | "boissons">("familles");
+  // Sub-tab under "gestion": "familles" | "categories" | "repas" | "boissons"
+  const [gestionTab, setGestionTab] = useState<"familles" | "categories" | "repas" | "boissons">("familles");
+
+  // Filter category state
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("");
 
   // Data states
   const [familles, setFamilles] = useState<MenuFamille[]>([]);
@@ -452,6 +455,18 @@ export const MenuView: React.FC = () => {
               </button>
 
               <button
+                onClick={() => setGestionTab("categories")}
+                className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative ${
+                  gestionTab === "categories"
+                    ? "text-accent-light border-b-2 border-accent-light"
+                    : "text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
+                }`}
+              >
+                <Sparkles size={18} />
+                Catégories ({categories.length})
+              </button>
+
+              <button
                 onClick={() => setGestionTab("repas")}
                 className={`pb-3 text-sm font-bold flex items-center gap-2 transition-colors relative ${
                   gestionTab === "repas"
@@ -460,7 +475,7 @@ export const MenuView: React.FC = () => {
                 }`}
               >
                 <Utensils size={18} />
-                Catégories & Repas ({menuRepasItems.length})
+                Repas du Menu ({menuRepasItems.length})
               </button>
 
               <button
@@ -651,27 +666,97 @@ export const MenuView: React.FC = () => {
             </div>
           )}
 
-          {/* Sub-Tab 2: Catégories & Repas */}
+          {/* Sub-Tab 2: Catégories Disponibles */}
+          {gestionTab === "categories" && (
+            <div className="space-y-6">
+              <div className="glass-card-premium p-8 space-y-6">
+                <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-accent-light" />
+                      Catégories de Menu Disponibles (`GET /menus/categories`)
+                    </h3>
+                    <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1">
+                      Catégories officielles renvoyées dynamiquement par le serveur API (`enum MenuCategorieNom`).
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 bg-accent-light/10 text-accent-light border border-accent-light/20 rounded-full text-xs font-extrabold">
+                    {categories.length} Catégorie(s)
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {categories.map((cat, idx) => (
+                    <motion.div
+                      key={idx}
+                      whileHover={{ scale: 1.02 }}
+                      className="p-5 glass-card-premium border border-white/10 flex items-center justify-between group cursor-pointer"
+                      onClick={() => {
+                        setSelectedCategoryFilter(cat);
+                        setGestionTab("repas");
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-accent-light/10 text-accent-light group-hover:bg-accent-light group-hover:text-white transition-colors">
+                          <Utensils size={18} />
+                        </div>
+                        <span className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark">
+                          {cat}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-accent-light group-hover:underline">
+                        Voir les plats →
+                      </span>
+                    </motion.div>
+                  ))}
+
+                  {categories.length === 0 && (
+                    <div className="col-span-full p-8 text-center text-text-secondary-light dark:text-text-secondary-dark italic">
+                      Aucune catégorie disponible.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-Tab 3: Repas du Menu */}
           {gestionTab === "repas" && (
             <div className="space-y-6">
-              {/* Category Info */}
+              {/* Category Filter Pills */}
               <div className="glass-card-premium p-4 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h4 className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider">
-                    Catégories disponibles de l'API
-                  </h4>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {categories.map((cat, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-accent-light/10 text-accent-light border border-accent-light/20 rounded-full text-xs font-semibold">
-                        {cat}
-                      </span>
-                    ))}
-                    {categories.length === 0 && (
-                      <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark italic">
-                        Aucune catégorie retournée par l'API.
-                      </span>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider mr-2">
+                    Filtrer par catégorie:
+                  </span>
+                  <button
+                    onClick={() => setSelectedCategoryFilter("")}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                      selectedCategoryFilter === ""
+                        ? "bg-accent-light text-white shadow-md shadow-accent-light/20"
+                        : "glass-capsule text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light"
+                    }`}
+                  >
+                    Toutes ({menuRepasItems.length})
+                  </button>
+                  {categories.map((cat, idx) => {
+                    const count = menuRepasItems.filter(
+                      (item) => String((item as any).menuCategorieId || (item as any).categorie || "") === cat
+                    ).length;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedCategoryFilter(cat)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                          selectedCategoryFilter === cat
+                            ? "bg-accent-light text-white shadow-md shadow-accent-light/20"
+                            : "glass-capsule text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light"
+                        }`}
+                      >
+                        {cat} ({count})
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -697,13 +782,19 @@ export const MenuView: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black/5 dark:divide-white/5 text-sm">
-                      {menuRepasItems.map((item) => {
-                        const matchedRepas = allRestaurantRepas.find((r) => r.id === item.repasId);
-                        const displayName = String((item as any).nomRepas || (item as any).nom || matchedRepas?.nomRepas || item.repasId);
-                        const displayPrice = (item as any).prix || matchedRepas?.prix;
-                        const catLabel = String((item as any).menuCategorieId || (item as any).categorie || "N/A");
+                      {menuRepasItems
+                        .filter((item) => {
+                          if (!selectedCategoryFilter) return true;
+                          const catLabel = String((item as any).menuCategorieId || (item as any).categorie || "");
+                          return catLabel === selectedCategoryFilter;
+                        })
+                        .map((item) => {
+                          const matchedRepas = allRestaurantRepas.find((r) => r.id === item.repasId);
+                          const displayName = String((item as any).nomRepas || (item as any).nom || matchedRepas?.nomRepas || item.repasId);
+                          const displayPrice = (item as any).prix || matchedRepas?.prix;
+                          const catLabel = String((item as any).menuCategorieId || (item as any).categorie || "N/A");
 
-                        return (
+                          return (
                           <tr key={item.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                             <td className="p-4 font-semibold text-text-primary-light dark:text-text-primary-dark">
                               <div>{displayName}</div>

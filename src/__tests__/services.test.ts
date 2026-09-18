@@ -21,7 +21,9 @@ import {
   createRepas,
   getRepas,
   updateRepas,
-  deleteRepas
+  deleteRepas,
+  uploadMenuImage,
+  listAvailableCategories
 } from "../services";
 
 function assertEqual(actual: unknown, expected: unknown, message: string) {
@@ -140,6 +142,18 @@ async function runTests() {
   assertEqual(lastCall.method, "DELETE", "deleteRepas method");
   assertEqual(lastCall.url, "/repas/repas-123", "deleteRepas url");
   console.log("✓ DELETE /repas/{repas_id}");
+
+  // Test Menu Upload and Categories Endpoints
+  await listAvailableCategories();
+  assertEqual(lastCall.method, "GET", "listAvailableCategories method");
+  assertEqual(lastCall.url, "/menus/categories", "listAvailableCategories url");
+  console.log("✓ GET /menus/categories");
+
+  const dummyFile = new File(["dummy content"], "poisson.png", { type: "image/png" });
+  await uploadMenuImage(dummyFile, "famille-uuid-123", 3);
+  assertEqual(lastCall.method, "POST", "uploadMenuImage method");
+  assertEqual(lastCall.url, "/menus/upload", "uploadMenuImage url");
+  console.log("✓ POST /menus/upload");
 
   // Test Commandes Endpoints
   await listCommandes();
