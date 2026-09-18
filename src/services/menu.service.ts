@@ -122,7 +122,14 @@ export const listAvailableCategories = () => {
  * POST /menus/repas
  */
 export const createMenuRepas = (data: MenuRepasCreate) => {
-  return api.post<MenuRepas>("/menus/repas", data);
+  const payload: Record<string, any> = {
+    ordre: data.ordre ?? 0,
+    menuCategorieId: data.menuCategorieId,
+    menu_categorie_id: data.menuCategorieId,
+    repasId: data.repasId,
+    repas_id: data.repasId,
+  };
+  return api.post<MenuRepas>("/menus/repas", payload);
 };
 
 /**
@@ -130,7 +137,17 @@ export const createMenuRepas = (data: MenuRepasCreate) => {
  * PATCH /menus/repas/{menu_repas_id}
  */
 export const updateMenuRepas = (menuRepasId: string, data: MenuRepasUpdate) => {
-  return api.patch<MenuRepas>(`/menus/repas/${menuRepasId}`, data);
+  const payload: Record<string, any> = {};
+  if (data.ordre !== undefined) payload.ordre = data.ordre;
+  if (data.menuCategorieId !== undefined) {
+    payload.menuCategorieId = data.menuCategorieId;
+    payload.menu_categorie_id = data.menuCategorieId;
+  }
+  if (data.repasId !== undefined) {
+    payload.repasId = data.repasId;
+    payload.repas_id = data.repasId;
+  }
+  return api.patch<MenuRepas>(`/menus/repas/${menuRepasId}`, payload);
 };
 
 /**
@@ -146,7 +163,14 @@ export const deleteMenuRepas = (menuRepasId: string) => {
  * POST /menus/boissons
  */
 export const createMenuBoisson = (data: MenuBoissonCreate) => {
-  return api.post<MenuBoisson>("/menus/boissons", data);
+  const payload: Record<string, any> = {
+    ordre: data.ordre ?? 0,
+    boissonId: data.boissonId,
+    boisson_id: data.boissonId,
+    imageUrl: data.imageUrl ?? null,
+    image_url: data.imageUrl ?? null,
+  };
+  return api.post<MenuBoisson>("/menus/boissons", payload);
 };
 
 /**
@@ -154,7 +178,17 @@ export const createMenuBoisson = (data: MenuBoissonCreate) => {
  * PATCH /menus/boissons/{menu_boisson_id}
  */
 export const updateMenuBoisson = (menuBoissonId: string, data: MenuBoissonUpdate) => {
-  return api.patch<MenuBoisson>(`/menus/boissons/${menuBoissonId}`, data);
+  const payload: Record<string, any> = {};
+  if (data.ordre !== undefined) payload.ordre = data.ordre;
+  if (data.boissonId !== undefined) {
+    payload.boissonId = data.boissonId;
+    payload.boisson_id = data.boissonId;
+  }
+  if (data.imageUrl !== undefined) {
+    payload.imageUrl = data.imageUrl;
+    payload.image_url = data.imageUrl;
+  }
+  return api.patch<MenuBoisson>(`/menus/boissons/${menuBoissonId}`, payload);
 };
 
 /**

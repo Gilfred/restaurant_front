@@ -174,7 +174,9 @@ async function runTests() {
     {
       ordre: 0,
       menuCategorieId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      repasId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+      menu_categorie_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      repasId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      repas_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     },
     "createMenuRepas data"
   );
@@ -206,8 +208,10 @@ async function runTests() {
     lastCall.data,
     {
       ordre: 0,
+      boissonId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      boisson_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       imageUrl: "https://example.com/image.png",
-      boissonId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+      image_url: "https://example.com/image.png"
     },
     "createMenuBoisson data"
   );

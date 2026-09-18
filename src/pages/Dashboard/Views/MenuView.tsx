@@ -83,7 +83,13 @@ export const MenuView: React.FC = () => {
     const detail = err?.response?.data?.detail;
     if (typeof detail === "string") return detail;
     if (Array.isArray(detail) && detail.length > 0) {
-      return detail.map((d: any) => d.msg || JSON.stringify(d)).join(" ; ");
+      return detail
+        .map((d: any) => {
+          const locStr = Array.isArray(d.loc) ? d.loc.slice(1).join(".") : "";
+          const fieldPrefix = locStr ? `[${locStr}]: ` : "";
+          return `${fieldPrefix}${d.msg || JSON.stringify(d)}`;
+        })
+        .join(" ; ");
     }
     if (err?.response?.data?.message) return err.response.data.message;
     return fallback;
