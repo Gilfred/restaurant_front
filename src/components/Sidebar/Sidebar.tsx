@@ -47,7 +47,8 @@ const menuItems: MenuItem[] = [
     children: [
       { id: 'cuisine-appro', label: 'Appro Condiments' },
       { id: 'cuisine-appro-boisson', label: 'Appro Boissons' },
-      { id: 'cuisine-boissons', label: 'Gestion Boissons' }
+      { id: 'cuisine-boissons', label: 'Gestion Boissons' },
+      { id: 'cuisine-repas', label: 'Gestion Repas' }
     ]
   },
   {
@@ -184,6 +185,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return <Wine size={16} />;
       case 'cuisine-boissons':
         return <Wine size={16} />;
+      case 'cuisine-repas':
+        return <UtensilsCrossed size={16} />;
       default:
         return null;
     }

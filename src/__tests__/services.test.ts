@@ -17,7 +17,11 @@ import {
   getBoisson,
   updateBoisson,
   deleteBoisson,
-  listRepas
+  listRepas,
+  createRepas,
+  getRepas,
+  updateRepas,
+  deleteRepas
 } from "../services";
 
 function assertEqual(actual: unknown, expected: unknown, message: string) {
@@ -100,6 +104,42 @@ async function runTests() {
   assertEqual(lastCall.method, "GET", "listRepas method");
   assertEqual(lastCall.url, "/repas/", "listRepas url");
   console.log("✓ GET /repas/");
+
+  await createRepas({
+    nomRepas: "Plat Test",
+    prix: 2500
+  });
+  assertEqual(lastCall.method, "POST", "createRepas method");
+  assertEqual(lastCall.url, "/repas/", "createRepas url");
+  assertEqual(
+    lastCall.data,
+    {
+      nomRepas: "Plat Test",
+      prix: 2500
+    },
+    "createRepas data"
+  );
+  console.log("✓ POST /repas/");
+
+  await getRepas("repas-123");
+  assertEqual(lastCall.method, "GET", "getRepas method");
+  assertEqual(lastCall.url, "/repas/repas-123", "getRepas url");
+  console.log("✓ GET /repas/{repas_id}");
+
+  await updateRepas("repas-123", { nomRepas: "Plat Modifié", prix: 3000 });
+  assertEqual(lastCall.method, "PATCH", "updateRepas method");
+  assertEqual(lastCall.url, "/repas/repas-123", "updateRepas url");
+  assertEqual(
+    lastCall.data,
+    { nomRepas: "Plat Modifié", prix: 3000 },
+    "updateRepas data"
+  );
+  console.log("✓ PATCH /repas/{repas_id}");
+
+  await deleteRepas("repas-123");
+  assertEqual(lastCall.method, "DELETE", "deleteRepas method");
+  assertEqual(lastCall.url, "/repas/repas-123", "deleteRepas url");
+  console.log("✓ DELETE /repas/{repas_id}");
 
   // Test Commandes Endpoints
   await listCommandes();

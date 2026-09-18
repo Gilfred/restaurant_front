@@ -29,6 +29,7 @@ import { UnitesView } from './Views/UnitesView';
 import { OrdersView } from './Views/OrdersView';
 import { ApproBoissonView } from './Views/ApproBoissonView';
 import { BoissonsView } from './Views/BoissonsView';
+import { RepasView } from './Views/RepasView';
 import { MenuView } from './Views/MenuView';
 
 import type { Stat, BestSellingProduct } from './Dashboard.types';
@@ -324,6 +325,17 @@ export const Dashboard: React.FC = () => {
             className="p-4 sm:p-8"
           >
             <BoissonsView />
+          </motion.div>
+        );
+
+      case 'cuisine-repas':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 sm:p-8"
+          >
+            <RepasView />
           </motion.div>
         );
 

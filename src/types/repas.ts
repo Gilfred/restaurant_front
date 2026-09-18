@@ -7,3 +7,13 @@ export interface RepasResponse {
   updatedAt?: string;
   [key: string]: unknown;
 }
+
+export interface RepasCreate {
+  nomRepas: string;
+  prix?: number;
+}
+
+export interface RepasUpdate {
+  nomRepas?: string;
+  prix?: number;
+}
