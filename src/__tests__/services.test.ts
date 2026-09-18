@@ -13,6 +13,10 @@ import {
   updateApproBoisson,
   deleteApproBoisson,
   listBoissons,
+  createBoisson,
+  getBoisson,
+  updateBoisson,
+  deleteBoisson,
   listRepas
 } from "../services";
 
@@ -51,6 +55,46 @@ async function runTests() {
   assertEqual(lastCall.method, "GET", "listBoissons method");
   assertEqual(lastCall.url, "/boissons/", "listBoissons url");
   console.log("✓ GET /boissons/");
+
+  await createBoisson({
+    nomBoisson: "Soda Test",
+    contenance: "0,55cl",
+    prixVente: 500,
+    stock: 20
+  });
+  assertEqual(lastCall.method, "POST", "createBoisson method");
+  assertEqual(lastCall.url, "/boissons/", "createBoisson url");
+  assertEqual(
+    lastCall.data,
+    {
+      nomBoisson: "Soda Test",
+      contenance: "0,55cl",
+      prixVente: 500,
+      stock: 20
+    },
+    "createBoisson data"
+  );
+  console.log("✓ POST /boissons/");
+
+  await getBoisson("boisson-123");
+  assertEqual(lastCall.method, "GET", "getBoisson method");
+  assertEqual(lastCall.url, "/boissons/boisson-123", "getBoisson url");
+  console.log("✓ GET /boissons/{boisson_id}");
+
+  await updateBoisson("boisson-123", { nomBoisson: "Soda Updated", stock: 30 });
+  assertEqual(lastCall.method, "PATCH", "updateBoisson method");
+  assertEqual(lastCall.url, "/boissons/boisson-123", "updateBoisson url");
+  assertEqual(
+    lastCall.data,
+    { nomBoisson: "Soda Updated", stock: 30 },
+    "updateBoisson data"
+  );
+  console.log("✓ PATCH /boissons/{boisson_id}");
+
+  await deleteBoisson("boisson-123");
+  assertEqual(lastCall.method, "DELETE", "deleteBoisson method");
+  assertEqual(lastCall.url, "/boissons/boisson-123", "deleteBoisson url");
+  console.log("✓ DELETE /boissons/{boisson_id}");
 
   await listRepas();
   assertEqual(lastCall.method, "GET", "listRepas method");

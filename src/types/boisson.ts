@@ -10,6 +10,20 @@ export interface BoissonResponse {
   [key: string]: unknown;
 }
 
+export interface BoissonCreate {
+  nomBoisson: string;
+  contenance?: string;
+  prixVente?: number;
+  stock?: number;
+}
+
+export interface BoissonUpdate {
+  nomBoisson?: string;
+  contenance?: string;
+  prixVente?: number;
+  stock?: number;
+}
+
 export interface ApproBoissonResponse {
   id: string;
   boissonId: string;
