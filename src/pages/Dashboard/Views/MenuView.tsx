@@ -64,7 +64,7 @@ export const MenuView: React.FC = () => {
 
   // Data states
   const [familles, setFamilles] = useState<MenuFamille[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [allRestaurantRepas, setAllRestaurantRepas] = useState<RepasResponse[]>([]);
   const [allRestaurantBoissons, setAllRestaurantBoissons] = useState<BoissonResponse[]>([]);
   const [displayRestaurant, setDisplayRestaurant] = useState<MenuDisplayRestaurant | null>(null);
@@ -78,6 +78,16 @@ export const MenuView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const getErrorMessage = (err: any, fallback: string) => {
+    const detail = err?.response?.data?.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail) && detail.length > 0) {
+      return detail.map((d: any) => d.msg || JSON.stringify(d)).join(" ; ");
+    }
+    if (err?.response?.data?.message) return err.response.data.message;
+    return fallback;
+  };
 
   // --- Modal States ---
   // 1. Famille Modal (Create / Edit)
@@ -127,7 +137,18 @@ export const MenuView: React.FC = () => {
       ]);
 
       if (famillesRes.status === "fulfilled") setFamilles(famillesRes.value.data);
-      if (categoriesRes.status === "fulfilled") setCategories(categoriesRes.value.data);
+      if (categoriesRes.status === "fulfilled") {
+        const raw = categoriesRes.value.data;
+        if (Array.isArray(raw)) {
+          setCategories(raw);
+        } else if (raw && typeof raw === "object" && Array.isArray((raw as any).categories)) {
+          setCategories((raw as any).categories);
+        } else if (raw && typeof raw === "object" && Array.isArray((raw as any).data)) {
+          setCategories((raw as any).data);
+        } else {
+          setCategories([]);
+        }
+      }
       if (repasRes.status === "fulfilled") setAllRestaurantRepas(repasRes.value.data);
       if (boissonsRes.status === "fulfilled") setAllRestaurantBoissons(boissonsRes.value.data);
 
@@ -188,7 +209,7 @@ export const MenuView: React.FC = () => {
       await fetchData();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail?.[0]?.msg || err.response?.data?.detail || "Échec de l'enregistrement de la famille.");
+      setError(getErrorMessage(err, "Échec de l'enregistrement de la famille."));
     } finally {
       setSubmitting(false);
     }
@@ -202,7 +223,7 @@ export const MenuView: React.FC = () => {
       await fetchData();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || "Erreur lors de la suppression de la famille.");
+      setError(getErrorMessage(err, "Erreur lors de la suppression de la famille."));
     }
   };
 
@@ -227,7 +248,7 @@ export const MenuView: React.FC = () => {
       await fetchData();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || "Échec du téléversement de l'image.");
+      setError(getErrorMessage(err, "Échec du téléversement de l'image."));
     } finally {
       setSubmitting(false);
     }
@@ -251,7 +272,7 @@ export const MenuView: React.FC = () => {
       await fetchData();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || "Échec de la modification de l'image.");
+      setError(getErrorMessage(err, "Échec de la modification de l'image."));
     } finally {
       setSubmitting(false);
     }
@@ -265,7 +286,7 @@ export const MenuView: React.FC = () => {
       await fetchData();
     } catch (err: any) {
       console.error(err);
-      setError("Erreur lors de la suppression de l'image.");
+      setError(getErrorMessage(err, "Erreur lors de la suppression de l'image."));
     }
   };
 
@@ -305,7 +326,7 @@ export const MenuView: React.FC = () => {
       await fetchData();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || "Échec de l'enregistrement du plat au menu.");
+      setError(getErrorMessage(err, "Échec de l'enregistrement du plat au menu."));
     } finally {
       setSubmitting(false);
     }
@@ -319,7 +340,7 @@ export const MenuView: React.FC = () => {
       await fetchData();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || "Erreur lors de la suppression du plat du menu.");
+      setError(getErrorMessage(err, "Erreur lors de la suppression du plat du menu."));
     }
   };
 
@@ -359,7 +380,7 @@ export const MenuView: React.FC = () => {
       await fetchData();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || "Échec de l'enregistrement de la boisson au menu.");
+      setError(getErrorMessage(err, "Échec de l'enregistrement de la boisson au menu."));
     } finally {
       setSubmitting(false);
     }
@@ -373,7 +394,7 @@ export const MenuView: React.FC = () => {
       await fetchData();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || "Erreur lors de la suppression de la boisson du menu.");
+      setError(getErrorMessage(err, "Erreur lors de la suppression de la boisson du menu."));
     }
   };
 
@@ -522,12 +543,14 @@ export const MenuView: React.FC = () => {
                 </div>
               )}
 
-              {gestionTab === "repas" && (
+              {(gestionTab === "repas" || gestionTab === "categories" || gestionTab === "familles" || gestionTab === "boissons") && (
                 <button
                   onClick={() => {
                     setEditingMenuRepas(null);
                     setSelectedRepasId("");
-                    setSelectedCategorieId(categories[0] || "");
+                    const firstCat = categories[0];
+                    const defaultCatId = typeof firstCat === "string" ? firstCat : (firstCat?.id || firstCat?.nom || firstCat?.name || "");
+                    setSelectedCategorieId(defaultCatId);
                     setRepasOrdre(0);
                     setIsRepasModalOpen(true);
                   }}
@@ -686,33 +709,36 @@ export const MenuView: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {categories.map((cat, idx) => (
-                    <motion.div
-                      key={idx}
-                      whileHover={{ scale: 1.02 }}
-                      className="p-5 glass-card-premium border border-white/10 flex items-center justify-between group cursor-pointer"
-                      onClick={() => {
-                        setSelectedCategoryFilter(cat);
-                        setGestionTab("repas");
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-accent-light/10 text-accent-light group-hover:bg-accent-light group-hover:text-white transition-colors">
-                          <Utensils size={18} />
+                  {categories.map((cat, idx) => {
+                    const catLabel = typeof cat === "string" ? cat : (cat?.nom || cat?.name || cat?.id || `Catégorie ${idx + 1}`);
+                    return (
+                      <motion.div
+                        key={idx}
+                        whileHover={{ scale: 1.02 }}
+                        className="p-5 glass-card-premium border border-white/10 flex items-center justify-between group cursor-pointer"
+                        onClick={() => {
+                          setSelectedCategoryFilter(catLabel);
+                          setGestionTab("repas");
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 rounded-xl bg-accent-light/10 text-accent-light group-hover:bg-accent-light group-hover:text-white transition-colors">
+                            <Utensils size={18} />
+                          </div>
+                          <span className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark">
+                            {catLabel}
+                          </span>
                         </div>
-                        <span className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark">
-                          {cat}
+                        <span className="text-[10px] font-bold text-accent-light group-hover:underline">
+                          Voir les plats →
                         </span>
-                      </div>
-                      <span className="text-[10px] font-bold text-accent-light group-hover:underline">
-                        Voir les plats →
-                      </span>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
 
                   {categories.length === 0 && (
                     <div className="col-span-full p-8 text-center text-text-secondary-light dark:text-text-secondary-dark italic">
-                      Aucune catégorie disponible.
+                      Aucune catégorie disponible sur le serveur. Vous pouvez utiliser le bouton "+ Ajouter un plat au menu" pour associer un plat à une catégorie en entrant son identifiant.
                     </div>
                   )}
                 </div>
@@ -740,20 +766,22 @@ export const MenuView: React.FC = () => {
                     Toutes ({menuRepasItems.length})
                   </button>
                   {categories.map((cat, idx) => {
+                    const catVal = typeof cat === "string" ? cat : (cat?.id || cat?.nom || cat?.name || `cat-${idx}`);
+                    const catLabel = typeof cat === "string" ? cat : (cat?.nom || cat?.name || cat?.id || `Catégorie ${idx + 1}`);
                     const count = menuRepasItems.filter(
-                      (item) => String((item as any).menuCategorieId || (item as any).categorie || "") === cat
+                      (item) => String((item as any).menuCategorieId || (item as any).categorie || "") === catVal || String((item as any).menuCategorieId || (item as any).categorie || "") === catLabel
                     ).length;
                     return (
                       <button
                         key={idx}
-                        onClick={() => setSelectedCategoryFilter(cat)}
+                        onClick={() => setSelectedCategoryFilter(catLabel)}
                         className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                          selectedCategoryFilter === cat
+                          selectedCategoryFilter === catLabel
                             ? "bg-accent-light text-white shadow-md shadow-accent-light/20"
                             : "glass-capsule text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light"
                         }`}
                       >
-                        {cat} ({count})
+                        {catLabel} ({count})
                       </button>
                     );
                   })}
@@ -1399,21 +1427,34 @@ export const MenuView: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    Catégorie du Menu
+                    Catégorie du Menu (menuCategorieId)
                   </label>
-                  <select
+                  {categories.length > 0 && (
+                    <select
+                      value={selectedCategorieId}
+                      onChange={(e) => setSelectedCategorieId(e.target.value)}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm mb-2"
+                    >
+                      <option value="" className="bg-slate-900 text-white">-- Choisir dans les catégories de la liste --</option>
+                      {categories.map((cat, idx) => {
+                        const val = typeof cat === "string" ? cat : (cat?.id || cat?.nom || cat?.name || "");
+                        const label = typeof cat === "string" ? cat : (cat?.nom || cat?.name || cat?.id || `Catégorie ${idx + 1}`);
+                        return (
+                          <option key={idx} value={val} className="bg-slate-900 text-white">
+                            {label} ({val})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  )}
+                  <input
+                    type="text"
                     value={selectedCategorieId}
                     onChange={(e) => setSelectedCategorieId(e.target.value)}
                     required
+                    placeholder="UUID de la catégorie du menu (ex: 3fa85f64-5717-4562-b3fc-2c963f66afa6)"
                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
-                  >
-                    <option value="" className="bg-slate-900 text-white">-- Choisir une catégorie --</option>
-                    {categories.map((cat, idx) => (
-                      <option key={idx} value={cat} className="bg-slate-900 text-white">
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div className="space-y-1">
