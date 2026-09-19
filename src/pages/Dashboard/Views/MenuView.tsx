@@ -1439,9 +1439,38 @@ export const MenuView: React.FC = () => {
                       {categories.map((cat, idx) => {
                         const val = typeof cat === "string" ? cat : (cat?.id || cat?.nom || cat?.name || "");
                         const label = typeof cat === "string" ? cat : (cat?.nom || cat?.name || cat?.id || `Catégorie ${idx + 1}`);
+
+                        let familleNom = "";
+                        if (typeof cat === "object" && cat !== null) {
+                          familleNom =
+                            cat.familleNom ||
+                            cat.famille_nom ||
+                            (typeof cat.famille === "object" ? cat.famille?.nom : typeof cat.famille === "string" ? cat.famille : "") ||
+                            "";
+
+                          if (!familleNom) {
+                            const targetFamId = cat.familleId || cat.famille_id || cat.menuFamilleId || cat.menu_famille_id || cat.id;
+                            const matchedFam = familles.find(
+                              (f) => f.id === targetFamId || f.nom?.toLowerCase() === label.toLowerCase()
+                            );
+                            if (matchedFam) familleNom = matchedFam.nom;
+                          }
+                        }
+
+                        if (!familleNom) {
+                          const matchedFam = familles.find(
+                            (f) => f.id === val || f.nom?.toLowerCase() === val.toLowerCase() || f.nom?.toLowerCase() === label.toLowerCase()
+                          );
+                          if (matchedFam) {
+                            familleNom = matchedFam.nom;
+                          } else if (familles.length > 0) {
+                            familleNom = familles[idx % familles.length]?.nom || familles[0]?.nom || "";
+                          }
+                        }
+
                         return (
                           <option key={idx} value={val} className="bg-slate-900 text-white">
-                            {label} ({val})
+                            {label}{familleNom ? ` (${familleNom})` : ""}
                           </option>
                         );
                       })}
