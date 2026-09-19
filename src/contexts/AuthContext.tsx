@@ -36,13 +36,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   const refreshUser = async () => {
+    if (typeof localStorage !== "undefined" && !localStorage.getItem("access_token")) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await getCurrentUser();
       setUser(response.data);
       return response.data;
-    } catch (error) {
-      if (typeof localStorage !== "undefined") {
-        localStorage.removeItem("access_token");
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        if (typeof localStorage !== "undefined") {
+          localStorage.removeItem("access_token");
+        }
       }
       setUser(null);
       throw error;
