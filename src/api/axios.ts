@@ -28,20 +28,28 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Si la session a expiré (401 Unauthorized), nettoyer le token et re-diriger automatiquement vers la page de connexion
+    // Ne nettoyer le token et rediriger vers /login sur 401 Unauthorized
+    // QUE SI la requête n'était PAS sur une route/endpoint public ou lors de l'initialisation passive du menu
     if (error.response?.status === 401) {
-      if (typeof localStorage !== "undefined") {
-        localStorage.removeItem("access_token");
-      }
-      console.warn("Session expirée. Redirection vers la page de connexion...");
-      if (
+      const configUrl = error.config?.url || "";
+      const isPublicEndpoint = configUrl.includes("/menus/display") || configUrl.includes("/restaurants");
+      const isPublicPage =
         typeof window !== "undefined" &&
-        !window.location.pathname.startsWith("/login") &&
-        !window.location.pathname.startsWith("/register") &&
-        !window.location.pathname.startsWith("/reset-password") &&
-        !window.location.pathname.startsWith("/auth/callback")
-      ) {
-        window.location.href = "/login";
+        (window.location.pathname.startsWith("/login") ||
+          window.location.pathname.startsWith("/register") ||
+          window.location.pathname.startsWith("/forgot-password") ||
+          window.location.pathname.startsWith("/reset-password") ||
+          window.location.pathname.startsWith("/auth/callback") ||
+          window.location.pathname.startsWith("/explore"));
+
+      if (!isPublicEndpoint && !isPublicPage) {
+        if (typeof localStorage !== "undefined") {
+          localStorage.removeItem("access_token");
+        }
+        console.warn("Session expirée sur route protégée. Redirection vers la page de connexion...");
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
       }
     }
 

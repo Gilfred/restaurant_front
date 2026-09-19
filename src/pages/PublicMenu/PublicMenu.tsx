@@ -37,41 +37,88 @@ export const PublicMenu: React.FC = () => {
         try {
           const displayRes = await getPublicMenuDisplay();
           if (displayRes.data?.restaurants && displayRes.data.restaurants.length > 0) {
-            displayRestaurants = displayRes.data.restaurants.map((r) => {
+            displayRestaurants = displayRes.data.restaurants.map((item: any) => {
+              const restoObj = item.restaurant || item;
               const menuItems: Dish[] = [];
+              let heroImage: string | undefined = restoObj.image || undefined;
 
-              if (r.repas && Array.isArray(r.repas)) {
-                r.repas.forEach((item: any) => {
-                  menuItems.push({
-                    id: item.id || `repas-${Math.random()}`,
-                    name: item.nomRepas || item.nom || "",
-                    description: item.description || undefined,
-                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "",
-                    category: item.categorie || "Plats"
-                  });
+              // Extract meals from nested familles -> categories -> repasList
+              if (item.familles && Array.isArray(item.familles)) {
+                item.familles.forEach((fam: any) => {
+                  const familleName = fam.nom ? fam.nom.trim() : "";
+                  // Check if famille has images to use as restaurant/category hero image
+                  if (!heroImage && fam.images && Array.isArray(fam.images) && fam.images.length > 0) {
+                    heroImage = fam.images[0].imageUrl;
+                  }
+
+                  if (fam.categories && Array.isArray(fam.categories)) {
+                    fam.categories.forEach((cat: any) => {
+                      const catName = cat.nom ? cat.nom.trim() : "";
+                      const categoryTitle = familleName ? `${familleName} - ${catName}` : catName || "Plats";
+
+                      if (cat.repasList && Array.isArray(cat.repasList)) {
+                        cat.repasList.forEach((rItem: any) => {
+                          const repasData = rItem.repas || rItem;
+                          const name = repasData.nomRepas || repasData.nom || "";
+                          if (name) {
+                            menuItems.push({
+                              id: rItem.id || repasData.id || `repas-${Math.random()}`,
+                              name: name,
+                              description: repasData.description || undefined,
+                              price: repasData.prix !== undefined && repasData.prix !== null ? `${Number(repasData.prix).toLocaleString()} F CFA` : "",
+                              category: categoryTitle
+                            });
+                          }
+                        });
+                      }
+                    });
+                  }
                 });
               }
 
-              if (r.boissons && Array.isArray(r.boissons)) {
-                r.boissons.forEach((item: any) => {
-                  menuItems.push({
-                    id: item.id || `boisson-${Math.random()}`,
-                    name: item.nomBoisson || item.nom || "",
-                    description: item.description || undefined,
-                    price: item.prix ? `${item.prix.toLocaleString()} F CFA` : "",
-                    category: "Boissons"
-                  });
+              // Fallback for flat repas if nested familles repasList was empty
+              if (menuItems.length === 0 && item.repas && Array.isArray(item.repas)) {
+                item.repas.forEach((rItem: any) => {
+                  const name = rItem.nomRepas || rItem.nom || "";
+                  if (name) {
+                    menuItems.push({
+                      id: rItem.id || `repas-${Math.random()}`,
+                      name: name,
+                      description: rItem.description || undefined,
+                      price: rItem.prix !== undefined && rItem.prix !== null ? `${Number(rItem.prix).toLocaleString()} F CFA` : "",
+                      category: rItem.categorie || "Plats"
+                    });
+                  }
+                });
+              }
+
+              // Extract drinks (boissons)
+              if (item.boissons && Array.isArray(item.boissons)) {
+                item.boissons.forEach((bItem: any) => {
+                  const boissonData = bItem.boisson || bItem;
+                  const name = boissonData.nomBoisson || boissonData.nom || bItem.nomBoisson || bItem.nom || "";
+                  if (name) {
+                    menuItems.push({
+                      id: bItem.id || boissonData.id || `boisson-${Math.random()}`,
+                      name: name,
+                      description: boissonData.description || undefined,
+                      price: (boissonData.prix !== undefined && boissonData.prix !== null)
+                        ? `${Number(boissonData.prix).toLocaleString()} F CFA`
+                        : (bItem.prix !== undefined && bItem.prix !== null) ? `${Number(bItem.prix).toLocaleString()} F CFA` : "",
+                      category: "Boissons"
+                    });
+                  }
                 });
               }
 
               return {
-                id: r.id,
-                name: r.name || "",
-                cuisine: r.cuisine || undefined,
-                rating: r.rating !== undefined && r.rating !== null ? Number(r.rating) : undefined,
-                image: r.image || undefined,
-                description: r.description || undefined,
-                address: r.address || undefined,
+                id: restoObj.id || item.id,
+                name: restoObj.name || restoObj.nom || "",
+                cuisine: restoObj.cuisine || undefined,
+                rating: restoObj.rating !== undefined && restoObj.rating !== null ? Number(restoObj.rating) : undefined,
+                image: heroImage,
+                description: restoObj.description || undefined,
+                address: restoObj.address || restoObj.adresse || undefined,
                 menu: menuItems
               };
             });
