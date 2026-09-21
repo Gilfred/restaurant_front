@@ -24,6 +24,7 @@ import {
   deleteRepas,
   uploadMenuImage,
   listAvailableCategories,
+  listCategoryNoms,
   createMenuCategorie,
   updateMenuCategorie,
   deleteMenuCategorie,
@@ -157,6 +158,11 @@ async function runTests() {
   assertEqual(lastCall.method, "GET", "listAvailableCategories method");
   assertEqual(lastCall.url, "/menus/categories", "listAvailableCategories url");
   console.log("✓ GET /menus/categories");
+
+  await listCategoryNoms();
+  assertEqual(lastCall.method, "GET", "listCategoryNoms method");
+  assertEqual(lastCall.url, "/menus/categories/noms", "listCategoryNoms url");
+  console.log("✓ GET /menus/categories/noms");
 
   await createMenuCategorie({
     nom: "classique",
