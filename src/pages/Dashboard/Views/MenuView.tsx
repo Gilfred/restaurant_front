@@ -1610,42 +1610,55 @@ export const MenuView: React.FC = () => {
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
                     Nom de la catégorie
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={categorieNom}
                     onChange={(e) => setCategorieNom(e.target.value)}
                     required
-                    placeholder="classique, spécial, gourmet..."
                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
-                  />
+                  >
+                    <option value="" className="bg-slate-900 text-white">-- Sélectionner une catégorie --</option>
+                    {/* Unique category names from server plus standard defaults */}
+                    {Array.from(
+                      new Set([
+                        "Entrées",
+                        "Plats",
+                        "Desserts",
+                        "Accompagnements",
+                        "Spécialités",
+                        "Grillades",
+                        "Fast Food",
+                        "Boissons",
+                        "Cocktails",
+                        "classique",
+                        "spécial",
+                        "gourmet",
+                        ...categories.map((cat) => (typeof cat === "string" ? cat : cat?.nom || cat?.name || "")).filter(Boolean)
+                      ])
+                    ).map((nomCat) => (
+                      <option key={nomCat} value={nomCat} className="bg-slate-900 text-white">
+                        {nomCat}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    Famille de menu (menuFamilleId)
+                    Famille de menu
                   </label>
-                  {familles.length > 0 && (
-                    <select
-                      value={categorieFamilleId}
-                      onChange={(e) => setCategorieFamilleId(e.target.value)}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm mb-2"
-                    >
-                      <option value="" className="bg-slate-900 text-white">-- Choisir parmi les familles existantes --</option>
-                      {familles.map((f) => (
-                        <option key={f.id} value={f.id} className="bg-slate-900 text-white">
-                          {f.nom}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <input
-                    type="text"
+                  <select
                     value={categorieFamilleId}
                     onChange={(e) => setCategorieFamilleId(e.target.value)}
                     required
-                    placeholder="UUID de la famille (ex: 3fa85f64-5717-4562-b3fc-2c963f66afa6)"
                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
-                  />
+                  >
+                    <option value="" className="bg-slate-900 text-white">-- Choisir parmi les familles existantes --</option>
+                    {familles.map((f) => (
+                      <option key={f.id} value={f.id} className="bg-slate-900 text-white">
+                        {f.nom}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-1">
@@ -1731,63 +1744,54 @@ export const MenuView: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    Catégorie du Menu (menuCategorieId)
+                    Catégorie du Menu
                   </label>
-                  {categories.length > 0 && (
-                    <select
-                      value={selectedCategorieId}
-                      onChange={(e) => setSelectedCategorieId(e.target.value)}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm mb-2"
-                    >
-                      <option value="" className="bg-slate-900 text-white">-- Choisir dans les catégories de la liste --</option>
-                      {categories.map((cat, idx) => {
-                        const val = typeof cat === "string" ? cat : (cat?.id || cat?.nom || cat?.name || "");
-                        const label = typeof cat === "string" ? cat : (cat?.nom || cat?.name || cat?.id || `Catégorie ${idx + 1}`);
-
-                        let familleNom = "";
-                        if (typeof cat === "object" && cat !== null) {
-                          familleNom =
-                            cat.familleNom ||
-                            cat.famille_nom ||
-                            (typeof cat.famille === "object" ? cat.famille?.nom : typeof cat.famille === "string" ? cat.famille : "") ||
-                            "";
-
-                          if (!familleNom) {
-                            const targetFamId = cat.familleId || cat.famille_id || cat.menuFamilleId || cat.menu_famille_id || cat.id;
-                            const matchedFam = familles.find(
-                              (f) => f.id === targetFamId || f.nom?.toLowerCase() === label.toLowerCase()
-                            );
-                            if (matchedFam) familleNom = matchedFam.nom;
-                          }
-                        }
-
-                        if (!familleNom) {
-                          const matchedFam = familles.find(
-                            (f) => f.id === val || f.nom?.toLowerCase() === val.toLowerCase() || f.nom?.toLowerCase() === label.toLowerCase()
-                          );
-                          if (matchedFam) {
-                            familleNom = matchedFam.nom;
-                          } else if (familles.length > 0) {
-                            familleNom = familles[idx % familles.length]?.nom || familles[0]?.nom || "";
-                          }
-                        }
-
-                        return (
-                          <option key={idx} value={val} className="bg-slate-900 text-white">
-                            {label}{familleNom ? ` (${familleNom})` : ""}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  )}
-                  <input
-                    type="text"
+                  <select
                     value={selectedCategorieId}
                     onChange={(e) => setSelectedCategorieId(e.target.value)}
                     required
-                    placeholder="UUID de la catégorie du menu (ex: 3fa85f64-5717-4562-b3fc-2c963f66afa6)"
                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
-                  />
+                  >
+                    <option value="" className="bg-slate-900 text-white">-- Choisir dans les catégories de la liste --</option>
+                    {categories.map((cat, idx) => {
+                      const val = typeof cat === "string" ? cat : (cat?.id || cat?.nom || cat?.name || "");
+                      const label = typeof cat === "string" ? cat : (cat?.nom || cat?.name || cat?.id || `Catégorie ${idx + 1}`);
+
+                      let familleNom = "";
+                      if (typeof cat === "object" && cat !== null) {
+                        familleNom =
+                          cat.familleNom ||
+                          cat.famille_nom ||
+                          (typeof cat.famille === "object" ? cat.famille?.nom : typeof cat.famille === "string" ? cat.famille : "") ||
+                          "";
+
+                        if (!familleNom) {
+                          const targetFamId = cat.familleId || cat.famille_id || cat.menuFamilleId || cat.menu_famille_id || cat.id;
+                          const matchedFam = familles.find(
+                            (f) => f.id === targetFamId || f.nom?.toLowerCase() === label.toLowerCase()
+                          );
+                          if (matchedFam) familleNom = matchedFam.nom;
+                        }
+                      }
+
+                      if (!familleNom) {
+                        const matchedFam = familles.find(
+                          (f) => f.id === val || f.nom?.toLowerCase() === val.toLowerCase() || f.nom?.toLowerCase() === label.toLowerCase()
+                        );
+                        if (matchedFam) {
+                          familleNom = matchedFam.nom;
+                        } else if (familles.length > 0) {
+                          familleNom = familles[idx % familles.length]?.nom || familles[0]?.nom || "";
+                        }
+                      }
+
+                      return (
+                        <option key={idx} value={val} className="bg-slate-900 text-white">
+                          {label}{familleNom ? ` (${familleNom})` : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
 
                 <div className="space-y-1">
