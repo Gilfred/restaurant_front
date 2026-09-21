@@ -1617,23 +1617,13 @@ export const MenuView: React.FC = () => {
                     className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
                   >
                     <option value="" className="bg-slate-900 text-white">-- Sélectionner une catégorie --</option>
-                    {/* Unique category names from server plus standard defaults */}
+                    {/* Unique category names dynamically provided by the backend API */}
                     {Array.from(
-                      new Set([
-                        "Entrées",
-                        "Plats",
-                        "Desserts",
-                        "Accompagnements",
-                        "Spécialités",
-                        "Grillades",
-                        "Fast Food",
-                        "Boissons",
-                        "Cocktails",
-                        "classique",
-                        "spécial",
-                        "gourmet",
-                        ...categories.map((cat) => (typeof cat === "string" ? cat : cat?.nom || cat?.name || "")).filter(Boolean)
-                      ])
+                      new Set(
+                        categories
+                          .map((cat) => (typeof cat === "string" ? cat : cat?.nom || cat?.name || cat?.id || ""))
+                          .filter(Boolean)
+                      )
                     ).map((nomCat) => (
                       <option key={nomCat} value={nomCat} className="bg-slate-900 text-white">
                         {nomCat}
@@ -1754,8 +1744,8 @@ export const MenuView: React.FC = () => {
                   >
                     <option value="" className="bg-slate-900 text-white">-- Choisir dans les catégories de la liste --</option>
                     {categories.map((cat, idx) => {
-                      const val = typeof cat === "string" ? cat : (cat?.id || cat?.nom || cat?.name || "");
-                      const label = typeof cat === "string" ? cat : (cat?.nom || cat?.name || cat?.id || `Catégorie ${idx + 1}`);
+                      const catId = typeof cat === "string" ? cat : (cat?.id || cat?.nom || cat?.name || "");
+                      const catNom = typeof cat === "string" ? cat : (cat?.nom || cat?.name || cat?.id || `Catégorie ${idx + 1}`);
 
                       let familleNom = "";
                       if (typeof cat === "object" && cat !== null) {
@@ -1766,28 +1756,22 @@ export const MenuView: React.FC = () => {
                           "";
 
                         if (!familleNom) {
-                          const targetFamId = cat.familleId || cat.famille_id || cat.menuFamilleId || cat.menu_famille_id || cat.id;
-                          const matchedFam = familles.find(
-                            (f) => f.id === targetFamId || f.nom?.toLowerCase() === label.toLowerCase()
-                          );
+                          const targetFamId = cat.familleId || cat.famille_id || cat.menuFamilleId || cat.menu_famille_id;
+                          const matchedFam = familles.find((f) => f.id === targetFamId);
                           if (matchedFam) familleNom = matchedFam.nom;
                         }
                       }
 
                       if (!familleNom) {
-                        const matchedFam = familles.find(
-                          (f) => f.id === val || f.nom?.toLowerCase() === val.toLowerCase() || f.nom?.toLowerCase() === label.toLowerCase()
-                        );
-                        if (matchedFam) {
-                          familleNom = matchedFam.nom;
-                        } else if (familles.length > 0) {
-                          familleNom = familles[idx % familles.length]?.nom || familles[0]?.nom || "";
-                        }
+                        const matchedFam = familles.find((f) => f.id === catId);
+                        if (matchedFam) familleNom = matchedFam.nom;
                       }
 
+                      const displayText = familleNom ? `${catNom} — ${familleNom}` : catNom;
+
                       return (
-                        <option key={idx} value={val} className="bg-slate-900 text-white">
-                          {label}{familleNom ? ` (${familleNom})` : ""}
+                        <option key={catId || idx} value={catId} className="bg-slate-900 text-white">
+                          {displayText}
                         </option>
                       );
                     })}
