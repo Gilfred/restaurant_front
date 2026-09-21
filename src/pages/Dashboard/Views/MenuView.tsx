@@ -19,7 +19,8 @@ import {
   Building2,
   MapPin,
   UtensilsCrossed,
-  RefreshCw
+  RefreshCw,
+  Star
 } from "lucide-react";
 import {
   getPublicMenuDisplay,
@@ -45,12 +46,13 @@ import type {
   MenuFamilleCreate,
   MenuFamilleUpdate,
   MenuFamilleImage,
-  MenuDisplayRestaurantItem,
   MenuRepas,
   MenuBoisson
 } from "../../../types/menu";
 import type { RepasResponse } from "../../../types/repas";
 import type { BoissonResponse } from "../../../types/boisson";
+import { parseRestaurantDisplayData } from "../../PublicMenu/PublicMenu";
+import type { RestaurantDisplay } from "../../PublicMenu/PublicMenu.types";
 
 export const MenuView: React.FC = () => {
   // Top-level mode: "gestion" | "apercu"
@@ -67,7 +69,7 @@ export const MenuView: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [allRestaurantRepas, setAllRestaurantRepas] = useState<RepasResponse[]>([]);
   const [allRestaurantBoissons, setAllRestaurantBoissons] = useState<BoissonResponse[]>([]);
-  const [displayRestaurantItem, setDisplayRestaurantItem] = useState<MenuDisplayRestaurantItem | null>(null);
+  const [displayRestaurant, setDisplayRestaurant] = useState<RestaurantDisplay | null>(null);
 
   // Menu items parsed from display
   const [menuRepasItems, setMenuRepasItems] = useState<MenuRepas[]>([]);
@@ -154,9 +156,10 @@ export const MenuView: React.FC = () => {
 
       if (displayRes.status === "fulfilled" && displayRes.value.data?.restaurants?.length) {
         const restoItem = displayRes.value.data.restaurants[0];
-        setDisplayRestaurantItem(restoItem);
+        const parsedRestaurant = parseRestaurantDisplayData(restoItem);
+        setDisplayRestaurant(parsedRestaurant);
 
-        // Parse extracted meals from nested familles -> categories -> repasList
+        // Parse extracted meals for flat management table
         const parsedRepas: MenuRepas[] = [];
         if (restoItem.familles && Array.isArray(restoItem.familles)) {
           restoItem.familles.forEach((fam: any) => {
@@ -181,7 +184,6 @@ export const MenuView: React.FC = () => {
           });
         }
 
-        // Fallback for flat repas if nested repasList was empty
         if (parsedRepas.length === 0 && restoItem.repas && Array.isArray(restoItem.repas)) {
           restoItem.repas.forEach((r: any) => {
             parsedRepas.push(r);
@@ -190,7 +192,7 @@ export const MenuView: React.FC = () => {
 
         setMenuRepasItems(parsedRepas);
 
-        // Parse boissons
+        // Parse boissons for flat management table
         const parsedBoissons: MenuBoisson[] = [];
         if (restoItem.boissons && Array.isArray(restoItem.boissons)) {
           restoItem.boissons.forEach((bItem: any) => {
@@ -207,7 +209,7 @@ export const MenuView: React.FC = () => {
         }
         setMenuBoissonItems(parsedBoissons);
       } else {
-        setDisplayRestaurantItem(null);
+        setDisplayRestaurant(null);
         setMenuRepasItems([]);
         setMenuBoissonItems([]);
       }
@@ -1037,155 +1039,165 @@ export const MenuView: React.FC = () => {
             </button>
           </div>
 
-          {displayRestaurantItem ? (
+          {displayRestaurant ? (
             <div className="space-y-8">
-              {/* Restaurant Header Card */}
-              {(() => {
-                const restoObj: any = displayRestaurantItem.restaurant || displayRestaurantItem;
-                const name = String(restoObj.name || restoObj.nom || "Mon Restaurant");
-                const description = restoObj.description ? String(restoObj.description) : undefined;
-                const image = restoObj.image ? String(restoObj.image) : undefined;
-                const cuisine = restoObj.cuisine ? String(restoObj.cuisine) : undefined;
-                const address = (restoObj.address || restoObj.adresse) ? String(restoObj.address || restoObj.adresse) : undefined;
-
-                return (
-                  <div className="glass-card-premium p-8 flex flex-col md:flex-row gap-8 items-center border border-accent-light/20">
-                    <div className="w-full md:w-56 h-56 rounded-3xl overflow-hidden bg-gradient-to-tr from-slate-800 to-slate-950 flex items-center justify-center shadow-inner">
-                      {image ? (
-                        <img src={image} alt={name} className="w-full h-full object-cover" />
-                      ) : (
-                        <Building2 className="w-16 h-16 text-white/20" />
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-3">
-                      <h2 className="text-3xl font-extrabold text-text-primary-light dark:text-text-primary-dark">
-                        {name}
-                      </h2>
-                      {description && (
-                        <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm max-w-2xl">
-                          {description}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-4 pt-2">
-                        {cuisine && (
-                          <div className="flex items-center gap-2 text-xs font-semibold text-accent-light bg-accent-light/10 px-3 py-1.5 rounded-full">
-                            <UtensilsCrossed size={14} />
-                            <span>{cuisine}</span>
-                          </div>
-                        )}
-                        {address && (
-                          <div className="flex items-center gap-2 text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark bg-white/5 px-3 py-1.5 rounded-full">
-                            <MapPin size={14} />
-                            <span>{address}</span>
-                          </div>
-                        )}
+              {/* Restaurant Header Card - Strict Rule 1: Only displayRestaurant.image */}
+              <div className="glass-card-premium p-8 flex flex-col md:flex-row gap-8 items-center border border-accent-light/20">
+                <div className="w-full md:w-56 h-56 rounded-3xl overflow-hidden bg-gradient-to-tr from-slate-800 to-slate-950 flex items-center justify-center shadow-inner">
+                  {displayRestaurant.image ? (
+                    <img src={displayRestaurant.image} alt={displayRestaurant.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Building2 className="w-16 h-16 text-white/20" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-3xl font-extrabold text-text-primary-light dark:text-text-primary-dark">
+                      {displayRestaurant.name}
+                    </h2>
+                    {displayRestaurant.rating !== undefined && displayRestaurant.rating !== null && (
+                      <div className="px-3 py-1 bg-accent-light/10 text-accent-light rounded-full text-sm font-bold flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-current" />
+                        {displayRestaurant.rating}
                       </div>
-                    </div>
+                    )}
                   </div>
-                );
-              })()}
-
-              {/* Familles Banner/Gallery Preview */}
-              {familles.length > 0 && (
-                <div className="space-y-4">
-                  <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">
-                    Familles
-                  </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {familles.map((fam) => (
-                      <div key={fam.id} className="glass-card-premium p-4 flex flex-col items-center text-center space-y-2">
-                        {fam.images && fam.images.length > 0 ? (
-                          <img src={fam.images[0].imageUrl} alt={fam.nom} className="w-full h-24 object-cover rounded-xl" />
-                        ) : (
-                          <div className="w-full h-24 rounded-xl bg-white/5 flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark">
-                            <ImageIcon size={24} className="opacity-30" />
-                          </div>
-                        )}
-                        <span className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark">
-                          {fam.nom}
-                        </span>
+                  {displayRestaurant.description && (
+                    <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm max-w-2xl">
+                      {displayRestaurant.description}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-4 pt-2">
+                    {displayRestaurant.cuisine && (
+                      <div className="flex items-center gap-2 text-xs font-semibold text-accent-light bg-accent-light/10 px-3 py-1.5 rounded-full">
+                        <UtensilsCrossed size={14} />
+                        <span>{displayRestaurant.cuisine}</span>
                       </div>
-                    ))}
+                    )}
+                    {displayRestaurant.address && (
+                      <div className="flex items-center gap-2 text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark bg-white/5 px-3 py-1.5 rounded-full">
+                        <MapPin size={14} />
+                        <span>{displayRestaurant.address}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Plats & Boissons Display */}
-              <div className="space-y-6">
-                <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark border-b border-black/5 dark:border-white/5 pb-2">
-                  Plats au Menu
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {menuRepasItems.map((item) => {
-                    const matched = allRestaurantRepas.find((r) => r.id === item.repasId);
-                    const name = String((item as any).nomRepas || (item as any).nom || matched?.nomRepas || "Plat");
-                    const price = (item as any).prix || matched?.prix;
-                    const catLabel = String((item as any).menuCategorieId || (item as any).categorie || "Général");
+              {/* Strict Hierarchical Menu Rendering */}
+              <div className="space-y-12">
+                {/* Familles */}
+                {displayRestaurant.familles.map((famille) => (
+                  <div key={famille.id} className="space-y-6 glass-card-premium p-6 sm:p-8 rounded-3xl">
+                    {/* 1. Nom de la famille */}
+                    <div className="flex items-center gap-4 border-b border-black/10 dark:border-white/10 pb-4">
+                      <h3 className="text-3xl font-extrabold text-text-primary-light dark:text-text-primary-dark tracking-tight">
+                        {famille.nom}
+                      </h3>
+                    </div>
 
-                    return (
-                      <div key={item.id} className="glass-card-premium p-6 flex flex-col justify-between">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-start">
-                            <h5 className="font-bold text-base text-text-primary-light dark:text-text-primary-dark">
-                              {name}
+                    {/* 2. Image(s) de cette famille uniquement */}
+                    {famille.images && famille.images.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-4">
+                        {famille.images.map((img) => (
+                          <div key={img.id} className="h-48 sm:h-56 rounded-2xl overflow-hidden bg-slate-900 border border-white/10 shadow-md">
+                            <img src={img.imageUrl} alt={famille.nom} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 3. Catégories de cette famille uniquement */}
+                    <div className="space-y-8 pt-2">
+                      {famille.categories.map((cat) => (
+                        <div key={cat.id} className="space-y-4">
+                          <h4 className="text-xl font-bold text-accent-light border-l-4 border-accent-light pl-3 py-0.5">
+                            {cat.nom}
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {cat.repasList.map((repas) => (
+                              <motion.div
+                                key={repas.id}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="glass-card-premium p-6 hover:bg-white/50 dark:hover:bg-slate-800/60 transition-colors group flex flex-col justify-between"
+                              >
+                                <div>
+                                  <div className="flex justify-between items-start mb-2 gap-2">
+                                    <h5 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark group-hover:text-accent-light transition-colors">
+                                      {repas.nom}
+                                    </h5>
+                                    {repas.formattedPrice && (
+                                      <span className="text-accent-light font-bold text-lg whitespace-nowrap">
+                                        {repas.formattedPrice}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {repas.description && (
+                                    <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark leading-relaxed">
+                                      {repas.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Boissons Section */}
+                {displayRestaurant.boissons.length > 0 && (
+                  <div className="space-y-6 glass-card-premium p-6 sm:p-8 rounded-3xl">
+                    <div className="flex items-center gap-3 border-b border-black/10 dark:border-white/10 pb-4">
+                      <Wine className="w-7 h-7 text-accent-light" />
+                      <h3 className="text-3xl font-extrabold text-text-primary-light dark:text-text-primary-dark tracking-tight">
+                        Boissons
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {displayRestaurant.boissons.map((boisson) => (
+                        <motion.div
+                          key={boisson.id}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="glass-card-premium p-6 hover:bg-white/50 dark:hover:bg-slate-800/60 transition-colors group flex items-center gap-4"
+                        >
+                          {boisson.imageUrl ? (
+                            <img src={boisson.imageUrl} alt={boisson.nom} className="w-20 h-20 object-cover rounded-2xl border border-white/10 flex-shrink-0" />
+                          ) : (
+                            <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark flex-shrink-0">
+                              <Wine size={28} className="opacity-30" />
+                            </div>
+                          )}
+                          <div className="flex-1 space-y-1 min-w-0">
+                            <h5 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark group-hover:text-accent-light transition-colors truncate">
+                              {boisson.nom}
                             </h5>
-                            {price && (
-                              <span className="text-sm font-bold text-accent-light">
-                                {Number(price).toLocaleString()} F CFA
-                              </span>
+                            {boisson.formattedPrice && (
+                              <p className="text-accent-light font-bold text-base">
+                                {boisson.formattedPrice}
+                              </p>
+                            )}
+                            {boisson.description && (
+                              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark line-clamp-2">
+                                {boisson.description}
+                              </p>
                             )}
                           </div>
-                          <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                            Catégorie: {catLabel}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {menuRepasItems.length === 0 && (
-                    <div className="col-span-full p-8 text-center glass-card-premium text-text-secondary-light dark:text-text-secondary-dark">
-                      Aucun plat disponible pour l'aperçu.
+                        </motion.div>
+                      ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                <h4 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark border-b border-black/5 dark:border-white/5 pb-2 pt-6">
-                  Boissons au Menu
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {menuBoissonItems.map((item) => {
-                    const matched = allRestaurantBoissons.find((b) => b.id === item.boissonId);
-                    const name = String((item as any).nomBoisson || (item as any).nom || matched?.nomBoisson || "Boisson");
-                    const price = (item as any).prix || matched?.prix;
-
-                    return (
-                      <div key={item.id} className="glass-card-premium p-6 flex items-center gap-4">
-                        {item.imageUrl ? (
-                          <img src={item.imageUrl} alt={name} className="w-16 h-16 object-cover rounded-2xl border border-white/10" />
-                        ) : (
-                          <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark">
-                            <Wine size={24} className="opacity-30" />
-                          </div>
-                        )}
-                        <div className="flex-1 space-y-1">
-                          <h5 className="font-bold text-base text-text-primary-light dark:text-text-primary-dark">
-                            {name}
-                          </h5>
-                          {price && (
-                            <p className="text-xs font-bold text-accent-light">
-                              {Number(price).toLocaleString()} F CFA
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {menuBoissonItems.length === 0 && (
-                    <div className="col-span-full p-8 text-center glass-card-premium text-text-secondary-light dark:text-text-secondary-dark">
-                      Aucune boisson disponible pour l'aperçu.
-                    </div>
-                  )}
-                </div>
+                {displayRestaurant.familles.length === 0 && displayRestaurant.boissons.length === 0 && (
+                  <div className="glass-card-premium p-12 text-center text-text-secondary-light dark:text-text-secondary-dark">
+                    Aucun plat ou boisson au menu pour ce restaurant.
+                  </div>
+                )}
               </div>
             </div>
           ) : (
