@@ -35,6 +35,28 @@ export interface MenuFamilleImageUploadResponse {
   public_id?: string;
 }
 
+export interface MenuCategorie {
+  id: string;
+  nom: string;
+  ordre: number;
+  menuFamilleId: string;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export interface MenuCategorieCreate {
+  nom: string;
+  ordre?: number;
+  menuFamilleId: string;
+}
+
+export interface MenuCategorieUpdate {
+  nom?: string;
+  ordre?: number;
+  menuFamilleId?: string;
+}
+
 export interface MenuRepas {
   id: string;
   ordre: number;
