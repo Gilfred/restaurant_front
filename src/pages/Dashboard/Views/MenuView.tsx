@@ -32,6 +32,7 @@ import {
   updateFamilleImage,
   deleteFamilleImage,
   listAvailableCategories,
+  listCategoryNoms,
   createMenuCategorie,
   updateMenuCategorie,
   deleteMenuCategorie,
@@ -71,6 +72,8 @@ export const MenuView: React.FC = () => {
   // Data states
   const [familles, setFamilles] = useState<MenuFamille[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [categoryNoms, setCategoryNoms] = useState<string[]>([]);
+  const [loadingCategoryNoms, setLoadingCategoryNoms] = useState<boolean>(false);
   const [allRestaurantRepas, setAllRestaurantRepas] = useState<RepasResponse[]>([]);
   const [allRestaurantBoissons, setAllRestaurantBoissons] = useState<BoissonResponse[]>([]);
   const [displayRestaurant, setDisplayRestaurant] = useState<RestaurantDisplay | null>(null);
@@ -141,9 +144,10 @@ export const MenuView: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const [famillesRes, categoriesRes, repasRes, boissonsRes, displayRes] = await Promise.allSettled([
+      const [famillesRes, categoriesRes, categoryNomsRes, repasRes, boissonsRes, displayRes] = await Promise.allSettled([
         listFamilles(),
         listAvailableCategories(),
+        listCategoryNoms(),
         listRepas(),
         listBoissons(),
         getPublicMenuDisplay()
@@ -160,6 +164,16 @@ export const MenuView: React.FC = () => {
           setCategories((raw as any).data);
         } else {
           setCategories([]);
+        }
+      }
+      if (categoryNomsRes.status === "fulfilled") {
+        const rawNoms = categoryNomsRes.value.data;
+        if (Array.isArray(rawNoms)) {
+          setCategoryNoms(rawNoms);
+        } else if (rawNoms && typeof rawNoms === "object" && Array.isArray((rawNoms as any).data)) {
+          setCategoryNoms((rawNoms as any).data);
+        } else {
+          setCategoryNoms([]);
         }
       }
       if (repasRes.status === "fulfilled") setAllRestaurantRepas(repasRes.value.data);
@@ -460,6 +474,24 @@ export const MenuView: React.FC = () => {
     }
   };
 
+  // Fetch enum category names from GET /menus/categories/noms specifically when modal opens
+  const fetchCategoryNoms = async () => {
+    try {
+      setLoadingCategoryNoms(true);
+      const res = await listCategoryNoms();
+      const raw = res.data;
+      if (Array.isArray(raw)) {
+        setCategoryNoms(raw);
+      } else if (raw && typeof raw === "object" && Array.isArray((raw as any).data)) {
+        setCategoryNoms((raw as any).data);
+      }
+    } catch (err) {
+      console.error("Error fetching category enum names:", err);
+    } finally {
+      setLoadingCategoryNoms(false);
+    }
+  };
+
   // --- Handlers: Categories ---
   const handleSaveCategorie = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -666,6 +698,7 @@ export const MenuView: React.FC = () => {
                     setCategorieNom("");
                     setCategorieOrdre(0);
                     setCategorieFamilleId(familles[0]?.id || "");
+                    fetchCategoryNoms();
                     setIsCategorieModalOpen(true);
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-[0.98]"
@@ -883,6 +916,7 @@ export const MenuView: React.FC = () => {
                                 setCategorieNom(catObj.nom || catLabel);
                                 setCategorieOrdre(catObj.ordre || 0);
                                 setCategorieFamilleId(catObj.menuFamilleId || familles[0]?.id || "");
+                                fetchCategoryNoms();
                                 setIsCategorieModalOpen(true);
                               }}
                               className="p-1.5 rounded-lg glass-capsule text-text-primary-light dark:text-text-primary-dark hover:bg-white/10 transition-colors"
@@ -1614,14 +1648,16 @@ export const MenuView: React.FC = () => {
                     value={categorieNom}
                     onChange={(e) => setCategorieNom(e.target.value)}
                     required
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                    disabled={loadingCategoryNoms}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm disabled:opacity-50"
                   >
-                    <option value="" className="bg-slate-900 text-white">-- Sélectionner une catégorie --</option>
-                    {/* Unique category names dynamically provided by the backend API */}
+                    <option value="" className="bg-slate-900 text-white">
+                      {loadingCategoryNoms ? "Chargement des catégories..." : "-- Sélectionner une catégorie --"}
+                    </option>
+                    {/* Unique Enum values loaded dynamically from GET /menus/categories/noms */}
                     {Array.from(
                       new Set(
-                        categories
-                          .map((cat) => (typeof cat === "string" ? cat : cat?.nom || cat?.name || cat?.id || ""))
+                        categoryNoms
                           .filter(Boolean)
                       )
                     ).map((nomCat) => (

@@ -121,6 +121,14 @@ export const listAvailableCategories = () => {
 };
 
 /**
+ * List Category Enum Names
+ * GET /menus/categories/noms
+ */
+export const listCategoryNoms = () => {
+  return api.get<string[]>("/menus/categories/noms");
+};
+
+/**
  * Create Menu Categorie
  * POST /menus/categories
  */
