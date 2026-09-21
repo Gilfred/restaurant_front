@@ -45,7 +45,7 @@ import type {
   MenuFamilleCreate,
   MenuFamilleUpdate,
   MenuFamilleImage,
-  MenuDisplayRestaurant,
+  MenuDisplayRestaurantItem,
   MenuRepas,
   MenuBoisson
 } from "../../../types/menu";
@@ -67,7 +67,7 @@ export const MenuView: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [allRestaurantRepas, setAllRestaurantRepas] = useState<RepasResponse[]>([]);
   const [allRestaurantBoissons, setAllRestaurantBoissons] = useState<BoissonResponse[]>([]);
-  const [displayRestaurant, setDisplayRestaurant] = useState<MenuDisplayRestaurant | null>(null);
+  const [displayRestaurantItem, setDisplayRestaurantItem] = useState<MenuDisplayRestaurantItem | null>(null);
 
   // Menu items parsed from display
   const [menuRepasItems, setMenuRepasItems] = useState<MenuRepas[]>([]);
@@ -153,12 +153,61 @@ export const MenuView: React.FC = () => {
       if (boissonsRes.status === "fulfilled") setAllRestaurantBoissons(boissonsRes.value.data);
 
       if (displayRes.status === "fulfilled" && displayRes.value.data?.restaurants?.length) {
-        const resto = displayRes.value.data.restaurants[0];
-        setDisplayRestaurant(resto);
-        setMenuRepasItems(resto.repas || []);
-        setMenuBoissonItems(resto.boissons || []);
+        const restoItem = displayRes.value.data.restaurants[0];
+        setDisplayRestaurantItem(restoItem);
+
+        // Parse extracted meals from nested familles -> categories -> repasList
+        const parsedRepas: MenuRepas[] = [];
+        if (restoItem.familles && Array.isArray(restoItem.familles)) {
+          restoItem.familles.forEach((fam: any) => {
+            if (fam.categories && Array.isArray(fam.categories)) {
+              fam.categories.forEach((cat: any) => {
+                if (cat.repasList && Array.isArray(cat.repasList)) {
+                  cat.repasList.forEach((rItem: any) => {
+                    const repasData = rItem.repas || rItem;
+                    parsedRepas.push({
+                      id: rItem.id || repasData.id || `repas-${Math.random()}`,
+                      ordre: rItem.ordre ?? 0,
+                      menuCategorieId: cat.nom || cat.id || "Général",
+                      repasId: repasData.id || "",
+                      nomRepas: repasData.nomRepas || repasData.nom || "",
+                      prix: repasData.prix,
+                      categorie: cat.nom || cat.id
+                    } as any);
+                  });
+                }
+              });
+            }
+          });
+        }
+
+        // Fallback for flat repas if nested repasList was empty
+        if (parsedRepas.length === 0 && restoItem.repas && Array.isArray(restoItem.repas)) {
+          restoItem.repas.forEach((r: any) => {
+            parsedRepas.push(r);
+          });
+        }
+
+        setMenuRepasItems(parsedRepas);
+
+        // Parse boissons
+        const parsedBoissons: MenuBoisson[] = [];
+        if (restoItem.boissons && Array.isArray(restoItem.boissons)) {
+          restoItem.boissons.forEach((bItem: any) => {
+            const boissonData = bItem.boisson || bItem;
+            parsedBoissons.push({
+              id: bItem.id || boissonData.id || `boisson-${Math.random()}`,
+              ordre: bItem.ordre ?? 0,
+              imageUrl: bItem.imageUrl || boissonData.imageUrl || null,
+              boissonId: boissonData.id || bItem.boissonId || "",
+              nomBoisson: boissonData.nomBoisson || boissonData.nom || bItem.nomBoisson || bItem.nom || "",
+              prix: boissonData.prix ?? bItem.prix
+            } as any);
+          });
+        }
+        setMenuBoissonItems(parsedBoissons);
       } else {
-        setDisplayRestaurant(null);
+        setDisplayRestaurantItem(null);
         setMenuRepasItems([]);
         setMenuBoissonItems([]);
       }
@@ -988,42 +1037,53 @@ export const MenuView: React.FC = () => {
             </button>
           </div>
 
-          {displayRestaurant ? (
+          {displayRestaurantItem ? (
             <div className="space-y-8">
               {/* Restaurant Header Card */}
-              <div className="glass-card-premium p-8 flex flex-col md:flex-row gap-8 items-center border border-accent-light/20">
-                <div className="w-full md:w-56 h-56 rounded-3xl overflow-hidden bg-gradient-to-tr from-slate-800 to-slate-950 flex items-center justify-center shadow-inner">
-                  {displayRestaurant.image ? (
-                    <img src={displayRestaurant.image} alt={displayRestaurant.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <Building2 className="w-16 h-16 text-white/20" />
-                  )}
-                </div>
-                <div className="flex-1 space-y-3">
-                  <h2 className="text-3xl font-extrabold text-text-primary-light dark:text-text-primary-dark">
-                    {displayRestaurant.name || "Mon Restaurant"}
-                  </h2>
-                  {displayRestaurant.description && (
-                    <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm max-w-2xl">
-                      {displayRestaurant.description}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-4 pt-2">
-                    {displayRestaurant.cuisine && (
-                      <div className="flex items-center gap-2 text-xs font-semibold text-accent-light bg-accent-light/10 px-3 py-1.5 rounded-full">
-                        <UtensilsCrossed size={14} />
-                        <span>{displayRestaurant.cuisine}</span>
+              {(() => {
+                const restoObj: any = displayRestaurantItem.restaurant || displayRestaurantItem;
+                const name = String(restoObj.name || restoObj.nom || "Mon Restaurant");
+                const description = restoObj.description ? String(restoObj.description) : undefined;
+                const image = restoObj.image ? String(restoObj.image) : undefined;
+                const cuisine = restoObj.cuisine ? String(restoObj.cuisine) : undefined;
+                const address = (restoObj.address || restoObj.adresse) ? String(restoObj.address || restoObj.adresse) : undefined;
+
+                return (
+                  <div className="glass-card-premium p-8 flex flex-col md:flex-row gap-8 items-center border border-accent-light/20">
+                    <div className="w-full md:w-56 h-56 rounded-3xl overflow-hidden bg-gradient-to-tr from-slate-800 to-slate-950 flex items-center justify-center shadow-inner">
+                      {image ? (
+                        <img src={image} alt={name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Building2 className="w-16 h-16 text-white/20" />
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <h2 className="text-3xl font-extrabold text-text-primary-light dark:text-text-primary-dark">
+                        {name}
+                      </h2>
+                      {description && (
+                        <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm max-w-2xl">
+                          {description}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-4 pt-2">
+                        {cuisine && (
+                          <div className="flex items-center gap-2 text-xs font-semibold text-accent-light bg-accent-light/10 px-3 py-1.5 rounded-full">
+                            <UtensilsCrossed size={14} />
+                            <span>{cuisine}</span>
+                          </div>
+                        )}
+                        {address && (
+                          <div className="flex items-center gap-2 text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark bg-white/5 px-3 py-1.5 rounded-full">
+                            <MapPin size={14} />
+                            <span>{address}</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {displayRestaurant.address && (
-                      <div className="flex items-center gap-2 text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark bg-white/5 px-3 py-1.5 rounded-full">
-                        <MapPin size={14} />
-                        <span>{displayRestaurant.address}</span>
-                      </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Familles Banner/Gallery Preview */}
               {familles.length > 0 && (
