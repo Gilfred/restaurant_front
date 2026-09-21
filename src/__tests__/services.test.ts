@@ -24,6 +24,9 @@ import {
   deleteRepas,
   uploadMenuImage,
   listAvailableCategories,
+  createMenuCategorie,
+  updateMenuCategorie,
+  deleteMenuCategorie,
   createMenuRepas,
   updateMenuRepas,
   deleteMenuRepas,
@@ -154,6 +157,47 @@ async function runTests() {
   assertEqual(lastCall.method, "GET", "listAvailableCategories method");
   assertEqual(lastCall.url, "/menus/categories", "listAvailableCategories url");
   console.log("✓ GET /menus/categories");
+
+  await createMenuCategorie({
+    nom: "classique",
+    ordre: 0,
+    menuFamilleId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  });
+  assertEqual(lastCall.method, "POST", "createMenuCategorie method");
+  assertEqual(lastCall.url, "/menus/categories", "createMenuCategorie url");
+  assertEqual(
+    lastCall.data,
+    {
+      nom: "classique",
+      ordre: 0,
+      menuFamilleId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    },
+    "createMenuCategorie data"
+  );
+  console.log("✓ POST /menus/categories");
+
+  await updateMenuCategorie("cat-123", {
+    nom: "classique",
+    ordre: 0,
+    menuFamilleId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  });
+  assertEqual(lastCall.method, "PATCH", "updateMenuCategorie method");
+  assertEqual(lastCall.url, "/menus/categories/cat-123", "updateMenuCategorie url");
+  assertEqual(
+    lastCall.data,
+    {
+      nom: "classique",
+      ordre: 0,
+      menuFamilleId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    },
+    "updateMenuCategorie data"
+  );
+  console.log("✓ PATCH /menus/categories/{categorie_id}");
+
+  await deleteMenuCategorie("cat-123");
+  assertEqual(lastCall.method, "DELETE", "deleteMenuCategorie method");
+  assertEqual(lastCall.url, "/menus/categories/cat-123", "deleteMenuCategorie url");
+  console.log("✓ DELETE /menus/categories/{categorie_id}");
 
   const dummyFile = new File(["dummy content"], "poisson.png", { type: "image/png" });
   await uploadMenuImage(dummyFile, "famille-uuid-123", 3);

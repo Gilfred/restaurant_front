@@ -6,6 +6,9 @@ import type {
   MenuFamilleUpdate,
   MenuFamilleImage,
   MenuFamilleImageUploadResponse,
+  MenuCategorie,
+  MenuCategorieCreate,
+  MenuCategorieUpdate,
   MenuRepas,
   MenuRepasCreate,
   MenuRepasUpdate,
@@ -115,6 +118,30 @@ export const deleteFamilleImage = (imageId: string) => {
  */
 export const listAvailableCategories = () => {
   return api.get<string[]>("/menus/categories");
+};
+
+/**
+ * Create Menu Categorie
+ * POST /menus/categories
+ */
+export const createMenuCategorie = (data: MenuCategorieCreate) => {
+  return api.post<MenuCategorie>("/menus/categories", data);
+};
+
+/**
+ * Update Menu Categorie
+ * PATCH /menus/categories/{categorie_id}
+ */
+export const updateMenuCategorie = (categorieId: string, data: MenuCategorieUpdate) => {
+  return api.patch<MenuCategorie>(`/menus/categories/${categorieId}`, data);
+};
+
+/**
+ * Delete Menu Categorie
+ * DELETE /menus/categories/{categorie_id}
+ */
+export const deleteMenuCategorie = (categorieId: string) => {
+  return api.delete<void>(`/menus/categories/${categorieId}`);
 };
 
 /**

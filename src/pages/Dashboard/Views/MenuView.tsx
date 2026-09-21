@@ -32,6 +32,9 @@ import {
   updateFamilleImage,
   deleteFamilleImage,
   listAvailableCategories,
+  createMenuCategorie,
+  updateMenuCategorie,
+  deleteMenuCategorie,
   createMenuRepas,
   updateMenuRepas,
   deleteMenuRepas,
@@ -46,6 +49,7 @@ import type {
   MenuFamilleCreate,
   MenuFamilleUpdate,
   MenuFamilleImage,
+  MenuCategorie,
   MenuRepas,
   MenuBoisson
 } from "../../../types/menu";
@@ -109,6 +113,13 @@ export const MenuView: React.FC = () => {
   const [editingImage, setEditingImage] = useState<MenuFamilleImage | null>(null);
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImageOrdre, setEditImageOrdre] = useState<number>(0);
+
+  // 3.5 Categorie Modal (Create / Edit)
+  const [isCategorieModalOpen, setIsCategorieModalOpen] = useState(false);
+  const [editingCategorie, setEditingCategorie] = useState<MenuCategorie | null>(null);
+  const [categorieNom, setCategorieNom] = useState("");
+  const [categorieOrdre, setCategorieOrdre] = useState<number>(0);
+  const [categorieFamilleId, setCategorieFamilleId] = useState<string>("");
 
   // 4. Repas Modal (Create / Edit)
   const [isRepasModalOpen, setIsRepasModalOpen] = useState(false);
@@ -449,6 +460,60 @@ export const MenuView: React.FC = () => {
     }
   };
 
+  // --- Handlers: Categories ---
+  const handleSaveCategorie = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      if (editingCategorie) {
+        await updateMenuCategorie(editingCategorie.id, {
+          nom: categorieNom,
+          ordre: categorieOrdre,
+          menuFamilleId: categorieFamilleId || editingCategorie.menuFamilleId
+        });
+        setSuccess("Catégorie mise à jour avec succès !");
+      } else {
+        if (!categorieNom || !categorieFamilleId) {
+          setError("Veuillez renseigner un nom et une famille pour la catégorie.");
+          setSubmitting(false);
+          return;
+        }
+        await createMenuCategorie({
+          nom: categorieNom,
+          ordre: categorieOrdre,
+          menuFamilleId: categorieFamilleId
+        });
+        setSuccess("Catégorie créée avec succès !");
+      }
+      setIsCategorieModalOpen(false);
+      setEditingCategorie(null);
+      setCategorieNom("");
+      setCategorieOrdre(0);
+      setCategorieFamilleId("");
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(getErrorMessage(err, "Échec de l'enregistrement de la catégorie."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteCategorie = async (categorieId: string) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette catégorie ?")) return;
+    try {
+      await deleteMenuCategorie(categorieId);
+      setSuccess("Catégorie supprimée avec succès.");
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(getErrorMessage(err, "Erreur lors de la suppression de la catégorie."));
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header & Main Mode Toggle */}
@@ -594,7 +659,23 @@ export const MenuView: React.FC = () => {
                 </div>
               )}
 
-              {(gestionTab === "repas" || gestionTab === "categories" || gestionTab === "familles" || gestionTab === "boissons") && (
+              {gestionTab === "categories" && (
+                <button
+                  onClick={() => {
+                    setEditingCategorie(null);
+                    setCategorieNom("");
+                    setCategorieOrdre(0);
+                    setCategorieFamilleId(familles[0]?.id || "");
+                    setIsCategorieModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-[0.98]"
+                >
+                  <Plus size={16} />
+                  Ajouter une catégorie
+                </button>
+              )}
+
+              {gestionTab === "repas" && (
                 <button
                   onClick={() => {
                     setEditingMenuRepas(null);
@@ -762,27 +843,75 @@ export const MenuView: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {categories.map((cat, idx) => {
                     const catLabel = typeof cat === "string" ? cat : (cat?.nom || cat?.name || cat?.id || `Catégorie ${idx + 1}`);
+                    const catObj = typeof cat === "object" && cat !== null ? cat : null;
+                    const catId = catObj?.id;
+
                     return (
                       <motion.div
                         key={idx}
                         whileHover={{ scale: 1.02 }}
-                        className="p-5 glass-card-premium border border-white/10 flex items-center justify-between group cursor-pointer"
-                        onClick={() => {
-                          setSelectedCategoryFilter(catLabel);
-                          setGestionTab("repas");
-                        }}
+                        className="p-5 glass-card-premium border border-white/10 flex items-center justify-between group"
                       >
-                        <div className="flex items-center gap-3">
+                        <div
+                          className="flex items-center gap-3 flex-1 cursor-pointer"
+                          onClick={() => {
+                            setSelectedCategoryFilter(catLabel);
+                            setGestionTab("repas");
+                          }}
+                        >
                           <div className="p-2.5 rounded-xl bg-accent-light/10 text-accent-light group-hover:bg-accent-light group-hover:text-white transition-colors">
                             <Utensils size={18} />
                           </div>
-                          <span className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark">
-                            {catLabel}
-                          </span>
+                          <div>
+                            <span className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark block">
+                              {catLabel}
+                            </span>
+                            {catObj?.menuFamilleId && (
+                              <span className="text-[10px] text-text-secondary-light dark:text-text-secondary-dark">
+                                Famille: {familles.find((f) => f.id === catObj.menuFamilleId)?.nom || catObj.menuFamilleId}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-[10px] font-bold text-accent-light group-hover:underline">
-                          Voir les plats →
-                        </span>
+
+                        {catId ? (
+                          <div className="flex items-center gap-1 ml-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCategorie(catObj as MenuCategorie);
+                                setCategorieNom(catObj.nom || catLabel);
+                                setCategorieOrdre(catObj.ordre || 0);
+                                setCategorieFamilleId(catObj.menuFamilleId || familles[0]?.id || "");
+                                setIsCategorieModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg glass-capsule text-text-primary-light dark:text-text-primary-dark hover:bg-white/10 transition-colors"
+                              title="Modifier la catégorie"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCategorie(catId);
+                              }}
+                              className="p-1.5 rounded-lg glass-capsule text-red-500 hover:bg-red-500/10 transition-colors"
+                              title="Supprimer la catégorie"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span
+                            className="text-[10px] font-bold text-accent-light group-hover:underline cursor-pointer"
+                            onClick={() => {
+                              setSelectedCategoryFilter(catLabel);
+                              setGestionTab("repas");
+                            }}
+                          >
+                            Voir les plats →
+                          </span>
+                        )}
                       </motion.div>
                     );
                   })}
@@ -1443,6 +1572,109 @@ export const MenuView: React.FC = () => {
                     className="flex-1 py-3.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-light/20 transition-all hover:scale-[1.02] disabled:opacity-50"
                   >
                     {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Mettre à jour"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal 3.5: Categorie (Create / Edit) */}
+      <AnimatePresence>
+        {isCategorieModalOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card-premium w-full max-w-lg p-8 relative overflow-hidden border border-white/20 dark:border-white/5"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-accent-light" />
+                  <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                    {editingCategorie ? "Modifier la Catégorie" : "Nouvelle Catégorie"}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsCategorieModalOpen(false)}
+                  className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary-light dark:text-text-secondary-dark transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCategorie} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
+                    Nom de la catégorie
+                  </label>
+                  <input
+                    type="text"
+                    value={categorieNom}
+                    onChange={(e) => setCategorieNom(e.target.value)}
+                    required
+                    placeholder="classique, spécial, gourmet..."
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
+                    Famille de menu (menuFamilleId)
+                  </label>
+                  {familles.length > 0 && (
+                    <select
+                      value={categorieFamilleId}
+                      onChange={(e) => setCategorieFamilleId(e.target.value)}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm mb-2"
+                    >
+                      <option value="" className="bg-slate-900 text-white">-- Choisir parmi les familles existantes --</option>
+                      {familles.map((f) => (
+                        <option key={f.id} value={f.id} className="bg-slate-900 text-white">
+                          {f.nom}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <input
+                    type="text"
+                    value={categorieFamilleId}
+                    onChange={(e) => setCategorieFamilleId(e.target.value)}
+                    required
+                    placeholder="UUID de la famille (ex: 3fa85f64-5717-4562-b3fc-2c963f66afa6)"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
+                    Ordre d'affichage
+                  </label>
+                  <input
+                    type="number"
+                    value={categorieOrdre}
+                    onChange={(e) => setCategorieOrdre(parseInt(e.target.value) || 0)}
+                    placeholder="0"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsCategorieModalOpen(false)}
+                    className="flex-1 py-3.5 glass-capsule rounded-2xl font-bold text-sm text-text-primary-light dark:text-text-primary-dark hover:scale-[1.02] transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 py-3.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-light/20 transition-all hover:scale-[1.02] disabled:opacity-50"
+                  >
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Enregistrer"}
                   </button>
                 </div>
               </form>
