@@ -22,6 +22,7 @@ import {
   updateRepas,
   deleteRepas
 } from "../../../services/repas.service";
+import { getMeRestaurant } from "../../../services/restaurant.service";
 import type { RepasResponse } from "../../../types/repas";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
@@ -57,8 +58,34 @@ export const RepasView: React.FC = () => {
     try {
       setLoading(true);
       setIsDenied(false);
-      const res = await listRepas();
-      setRepasList(res.data || []);
+      const [repasRes, meRes] = await Promise.allSettled([
+        listRepas(),
+        getMeRestaurant()
+      ]);
+
+      let rawRepas: RepasResponse[] = [];
+      if (repasRes.status === "fulfilled") {
+        rawRepas = repasRes.value.data || [];
+      } else if (repasRes.status === "rejected") {
+        const err = repasRes.reason;
+        if (err?.response?.status === 403 || err?.response?.status === 401) {
+          setIsDenied(true);
+        }
+      }
+
+      let userRestoId: string | null = null;
+      if (meRes.status === "fulfilled" && meRes.value.data?.restaurant) {
+        userRestoId = meRes.value.data.restaurant.id;
+      }
+
+      if (userRestoId) {
+        const filteredRepas = rawRepas.filter(
+          (r) => !r.restaurantId || String(r.restaurantId) === String(userRestoId)
+        );
+        setRepasList(filteredRepas);
+      } else {
+        setRepasList(rawRepas);
+      }
     } catch (err: any) {
       console.error(err);
       if (err.response?.status === 403 || err.response?.status === 401) {
