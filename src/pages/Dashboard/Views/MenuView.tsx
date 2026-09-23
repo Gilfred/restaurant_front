@@ -163,7 +163,10 @@ export const MenuView: React.FC = () => {
         userRestoName = meRes.value.data.restaurant.name;
       }
 
-      if (famillesRes.status === "fulfilled") setFamilles(famillesRes.value.data);
+      let fetchedFamilles: MenuFamille[] = [];
+      if (famillesRes.status === "fulfilled") {
+        fetchedFamilles = famillesRes.value.data || [];
+      }
       if (categoriesRes.status === "fulfilled") {
         const raw = categoriesRes.value.data;
         if (Array.isArray(raw)) {
@@ -231,6 +234,23 @@ export const MenuView: React.FC = () => {
         if (restoItem) {
           const parsedRestaurant = parseRestaurantDisplayData(restoItem);
           setDisplayRestaurant(parsedRestaurant);
+
+          // Enrich fetchedFamilles with images from display data if missing
+          if (fetchedFamilles.length > 0 && restoItem.familles && Array.isArray(restoItem.familles)) {
+            fetchedFamilles = fetchedFamilles.map((fam: any) => {
+              const existingImgs = fam.images || fam.familleImages || fam.famille_images || [];
+              if (!existingImgs || existingImgs.length === 0) {
+                const matchInDisplay = restoItem.familles.find((df: any) =>
+                  String(df.id) === String(fam.id) ||
+                  (df.nom && fam.nom && String(df.nom).toLowerCase().trim() === String(fam.nom).toLowerCase().trim())
+                );
+                if (matchInDisplay && matchInDisplay.images && matchInDisplay.images.length > 0) {
+                  return { ...fam, images: matchInDisplay.images };
+                }
+              }
+              return fam;
+            });
+          }
 
           // Parse extracted meals for flat management table
           const parsedRepas: MenuRepas[] = [];
@@ -302,6 +322,8 @@ export const MenuView: React.FC = () => {
         setMenuRepasItems([]);
         setMenuBoissonItems([]);
       }
+
+      setFamilles(fetchedFamilles);
     } catch (err: any) {
       console.error("Error fetching menu data:", err);
       setError("Impossible de charger l'ensemble des données du menu.");
@@ -827,11 +849,44 @@ export const MenuView: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Images gallery */}
-                    {famille.images && famille.images.length > 0 ? (
-                      <div className="grid grid-cols-2 gap-2 my-4">
-                        {famille.images.map((img) => (
-                          <div key={img.id} className="relative group/img rounded-xl overflow-hidden h-28 bg-black/20 border border-white/10">
+                    {/* Images gallery in the same frame */}
+                    {(() => {
+                      const rawImages =
+                        famille.images ||
+                        (famille as any).familleImages ||
+                        (famille as any).famille_images ||
+                        (famille as any).images_urls ||
+                        (famille as any).imageUrls ||
+                        [];
+
+                      const images: MenuFamilleImage[] = (Array.isArray(rawImages) ? rawImages : [])
+                        .map((img: any, idx: number) => {
+                          if (typeof img === "string") {
+                            return { id: `img-${famille.id}-${idx}`, familleId: famille.id, imageUrl: img, ordre: idx };
+                          }
+                          return {
+                            id: String(img?.id || img?.public_id || `img-${famille.id}-${idx}`),
+                            familleId: String(img?.familleId || img?.famille_id || famille.id),
+                            imageUrl: String(img?.imageUrl || img?.image_url || img?.url || img?.src || ""),
+                            ordre: img?.ordre ?? idx,
+                            public_id: img?.public_id
+                          };
+                        })
+                        .filter((img) => Boolean(img.imageUrl));
+
+                      if (images.length === 0) {
+                        return (
+                          <div className="h-36 my-4 rounded-xl border border-dashed border-white/10 text-center text-xs text-text-secondary-light dark:text-text-secondary-dark flex flex-col items-center justify-center gap-2 overflow-hidden">
+                            <ImageIcon size={20} className="opacity-40" />
+                            <span>Aucune image associée</span>
+                          </div>
+                        );
+                      }
+
+                      if (images.length === 1) {
+                        const img = images[0];
+                        return (
+                          <div className="h-36 my-4 rounded-xl border border-white/10 overflow-hidden relative group/img bg-black/20">
                             <img src={img.imageUrl} alt={famille.nom} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
                               <button
@@ -854,18 +909,48 @@ export const MenuView: React.FC = () => {
                                 <Trash2 size={14} />
                               </button>
                             </div>
-                            <span className="absolute bottom-1 right-1 text-[10px] bg-black/60 px-1.5 py-0.5 rounded text-white">
+                            <span className="absolute bottom-1 right-1 text-[10px] bg-black/60 px-1.5 py-0.5 rounded text-white pointer-events-none">
                               ord: {img.ordre}
                             </span>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-6 my-4 rounded-xl border border-dashed border-white/10 text-center text-xs text-text-secondary-light dark:text-text-secondary-dark flex flex-col items-center justify-center gap-2">
-                        <ImageIcon size={20} className="opacity-40" />
-                        <span>Aucune image associée</span>
-                      </div>
-                    )}
+                        );
+                      }
+
+                      const imagesToDisplay = images.slice(0, 2);
+                      return (
+                        <div className="h-36 my-4 rounded-xl border border-white/10 overflow-hidden flex flex-col divide-y divide-white/10 bg-black/20">
+                          {imagesToDisplay.map((img) => (
+                            <div key={img.id} className="relative flex-1 h-1/2 group/img overflow-hidden">
+                              <img src={img.imageUrl} alt={famille.nom} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingImage(img);
+                                    setEditImageFile(null);
+                                    setEditImageOrdre(img.ordre || 0);
+                                    setIsEditImageModalOpen(true);
+                                  }}
+                                  className="p-1 bg-accent-light text-white rounded hover:scale-110 transition-transform"
+                                  title="Remplacer / Modifier"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteImage(img.id)}
+                                  className="p-1 bg-red-500 text-white rounded hover:scale-110 transition-transform"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                              <span className="absolute bottom-1 right-1 text-[9px] bg-black/60 px-1 py-0.2 rounded text-white pointer-events-none">
+                                ord: {img.ordre}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t border-black/5 dark:border-white/5">
