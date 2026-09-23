@@ -862,7 +862,7 @@ export const MenuView: React.FC = () => {
                   <div>
                     <h3 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
                       <Sparkles className="w-5 h-5 text-accent-light" />
-                      Catégories de Menu Disponibles (`GET /menus/categories`)
+                      Catégories de Menu Disponibles
                     </h3>
                     <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1">
                       Catégories officielles renvoyées dynamiquement par le serveur API (`enum MenuCategorieNom`).
