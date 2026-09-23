@@ -43,6 +43,7 @@ import {
   updateMenuBoisson,
   deleteMenuBoisson
 } from "../../../services/menu.service";
+import { getMeRestaurant } from "../../../services/restaurant.service";
 import { listRepas } from "../../../services/repas.service";
 import { listBoissons } from "../../../services/boisson.service";
 import type {
@@ -144,7 +145,8 @@ export const MenuView: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const [famillesRes, categoriesRes, categoryNomsRes, repasRes, boissonsRes, displayRes] = await Promise.allSettled([
+      const [meRes, famillesRes, categoriesRes, categoryNomsRes, repasRes, boissonsRes, displayRes] = await Promise.allSettled([
+        getMeRestaurant(),
         listFamilles(),
         listAvailableCategories(),
         listCategoryNoms(),
@@ -152,6 +154,14 @@ export const MenuView: React.FC = () => {
         listBoissons(),
         getPublicMenuDisplay()
       ]);
+
+      let userRestoId: string | null = null;
+      let userRestoName: string | null = null;
+
+      if (meRes.status === "fulfilled" && meRes.value.data?.restaurant) {
+        userRestoId = meRes.value.data.restaurant.id;
+        userRestoName = meRes.value.data.restaurant.name;
+      }
 
       if (famillesRes.status === "fulfilled") setFamilles(famillesRes.value.data);
       if (categoriesRes.status === "fulfilled") {
@@ -176,63 +186,117 @@ export const MenuView: React.FC = () => {
           setCategoryNoms([]);
         }
       }
-      if (repasRes.status === "fulfilled") setAllRestaurantRepas(repasRes.value.data);
-      if (boissonsRes.status === "fulfilled") setAllRestaurantBoissons(boissonsRes.value.data);
+
+      if (repasRes.status === "fulfilled") {
+        const rawRepas = repasRes.value.data || [];
+        if (userRestoId) {
+          setAllRestaurantRepas(rawRepas.filter((r) => !r.restaurantId || String(r.restaurantId) === String(userRestoId)));
+        } else {
+          setAllRestaurantRepas(rawRepas);
+        }
+      }
+
+      if (boissonsRes.status === "fulfilled") {
+        const rawBoissons = boissonsRes.value.data || [];
+        if (userRestoId) {
+          setAllRestaurantBoissons(rawBoissons.filter((b) => !b.restaurantId || String(b.restaurantId) === String(userRestoId)));
+        } else {
+          setAllRestaurantBoissons(rawBoissons);
+        }
+      }
 
       if (displayRes.status === "fulfilled" && displayRes.value.data?.restaurants?.length) {
-        const restoItem = displayRes.value.data.restaurants[0];
-        const parsedRestaurant = parseRestaurantDisplayData(restoItem);
-        setDisplayRestaurant(parsedRestaurant);
+        const allDisplayRestos = displayRes.value.data.restaurants;
+        let restoItem: any = null;
 
-        // Parse extracted meals for flat management table
-        const parsedRepas: MenuRepas[] = [];
-        if (restoItem.familles && Array.isArray(restoItem.familles)) {
-          restoItem.familles.forEach((fam: any) => {
-            if (fam.categories && Array.isArray(fam.categories)) {
-              fam.categories.forEach((cat: any) => {
-                if (cat.repasList && Array.isArray(cat.repasList)) {
-                  cat.repasList.forEach((rItem: any) => {
-                    const repasData = rItem.repas || rItem;
-                    parsedRepas.push({
-                      id: rItem.id || repasData.id || `repas-${Math.random()}`,
-                      ordre: rItem.ordre ?? 0,
-                      menuCategorieId: cat.nom || cat.id || "Général",
-                      repasId: repasData.id || "",
-                      nomRepas: repasData.nomRepas || repasData.nom || "",
-                      prix: repasData.prix,
-                      categorie: cat.nom || cat.id
-                    } as any);
-                  });
-                }
-              });
-            }
+        if (userRestoId) {
+          restoItem = allDisplayRestos.find((item: any) => {
+            const rId = item.restaurant?.id || item.id;
+            return String(rId) === String(userRestoId);
           });
+
+          if (!restoItem && userRestoName) {
+            restoItem = allDisplayRestos.find((item: any) => {
+              const rName = item.restaurant?.name || item.name || item.restaurant?.nom || item.nom;
+              return rName && String(rName).toLowerCase() === String(userRestoName).toLowerCase();
+            });
+          }
         }
 
-        if (parsedRepas.length === 0 && restoItem.repas && Array.isArray(restoItem.repas)) {
-          restoItem.repas.forEach((r: any) => {
-            parsedRepas.push(r);
-          });
+        // Fallback to first restaurant only if user is not affiliated with a specific restaurant
+        if (!restoItem && !userRestoId) {
+          restoItem = allDisplayRestos[0];
         }
 
-        setMenuRepasItems(parsedRepas);
+        if (restoItem) {
+          const parsedRestaurant = parseRestaurantDisplayData(restoItem);
+          setDisplayRestaurant(parsedRestaurant);
 
-        // Parse boissons for flat management table
-        const parsedBoissons: MenuBoisson[] = [];
-        if (restoItem.boissons && Array.isArray(restoItem.boissons)) {
-          restoItem.boissons.forEach((bItem: any) => {
-            const boissonData = bItem.boisson || bItem;
-            parsedBoissons.push({
-              id: bItem.id || boissonData.id || `boisson-${Math.random()}`,
-              ordre: bItem.ordre ?? 0,
-              imageUrl: bItem.imageUrl || boissonData.imageUrl || null,
-              boissonId: boissonData.id || bItem.boissonId || "",
-              nomBoisson: boissonData.nomBoisson || boissonData.nom || bItem.nomBoisson || bItem.nom || "",
-              prix: boissonData.prix ?? bItem.prix
-            } as any);
-          });
+          // Parse extracted meals for flat management table
+          const parsedRepas: MenuRepas[] = [];
+          if (restoItem.familles && Array.isArray(restoItem.familles)) {
+            restoItem.familles.forEach((fam: any) => {
+              if (fam.categories && Array.isArray(fam.categories)) {
+                fam.categories.forEach((cat: any) => {
+                  if (cat.repasList && Array.isArray(cat.repasList)) {
+                    cat.repasList.forEach((rItem: any) => {
+                      const repasData = rItem.repas || rItem;
+                      parsedRepas.push({
+                        id: rItem.id || repasData.id || `repas-${Math.random()}`,
+                        ordre: rItem.ordre ?? 0,
+                        menuCategorieId: cat.nom || cat.id || "Général",
+                        repasId: repasData.id || "",
+                        nomRepas: repasData.nomRepas || repasData.nom || "",
+                        prix: repasData.prix,
+                        categorie: cat.nom || cat.id,
+                        restaurantId: repasData.restaurantId || rItem.restaurantId || restoItem.id || restoItem.restaurant?.id
+                      } as any);
+                    });
+                  }
+                });
+              }
+            });
+          }
+
+          if (parsedRepas.length === 0 && restoItem.repas && Array.isArray(restoItem.repas)) {
+            restoItem.repas.forEach((r: any) => {
+              parsedRepas.push(r);
+            });
+          }
+
+          const finalMenuRepas = userRestoId
+            ? parsedRepas.filter((r: any) => !r.restaurantId || String(r.restaurantId) === String(userRestoId))
+            : parsedRepas;
+
+          setMenuRepasItems(finalMenuRepas);
+
+          // Parse boissons for flat management table
+          const parsedBoissons: MenuBoisson[] = [];
+          if (restoItem.boissons && Array.isArray(restoItem.boissons)) {
+            restoItem.boissons.forEach((bItem: any) => {
+              const boissonData = bItem.boisson || bItem;
+              parsedBoissons.push({
+                id: bItem.id || boissonData.id || `boisson-${Math.random()}`,
+                ordre: bItem.ordre ?? 0,
+                imageUrl: bItem.imageUrl || boissonData.imageUrl || null,
+                boissonId: boissonData.id || bItem.boissonId || "",
+                nomBoisson: boissonData.nomBoisson || boissonData.nom || bItem.nomBoisson || bItem.nom || "",
+                prix: boissonData.prix ?? bItem.prix,
+                restaurantId: boissonData.restaurantId || bItem.restaurantId || restoItem.id || restoItem.restaurant?.id
+              } as any);
+            });
+          }
+
+          const finalMenuBoissons = userRestoId
+            ? parsedBoissons.filter((b: any) => !b.restaurantId || String(b.restaurantId) === String(userRestoId))
+            : parsedBoissons;
+
+          setMenuBoissonItems(finalMenuBoissons);
+        } else {
+          setDisplayRestaurant(null);
+          setMenuRepasItems([]);
+          setMenuBoissonItems([]);
         }
-        setMenuBoissonItems(parsedBoissons);
       } else {
         setDisplayRestaurant(null);
         setMenuRepasItems([]);
