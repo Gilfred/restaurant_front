@@ -163,7 +163,10 @@ export const MenuView: React.FC = () => {
         userRestoName = meRes.value.data.restaurant.name;
       }
 
-      if (famillesRes.status === "fulfilled") setFamilles(famillesRes.value.data);
+      let fetchedFamilles: MenuFamille[] = [];
+      if (famillesRes.status === "fulfilled") {
+        fetchedFamilles = famillesRes.value.data || [];
+      }
       if (categoriesRes.status === "fulfilled") {
         const raw = categoriesRes.value.data;
         if (Array.isArray(raw)) {
@@ -231,6 +234,23 @@ export const MenuView: React.FC = () => {
         if (restoItem) {
           const parsedRestaurant = parseRestaurantDisplayData(restoItem);
           setDisplayRestaurant(parsedRestaurant);
+
+          // Enrich fetchedFamilles with images from display data if missing
+          if (fetchedFamilles.length > 0 && restoItem.familles && Array.isArray(restoItem.familles)) {
+            fetchedFamilles = fetchedFamilles.map((fam: any) => {
+              const existingImgs = fam.images || fam.familleImages || fam.famille_images || [];
+              if (!existingImgs || existingImgs.length === 0) {
+                const matchInDisplay = restoItem.familles.find((df: any) =>
+                  String(df.id) === String(fam.id) ||
+                  (df.nom && fam.nom && String(df.nom).toLowerCase().trim() === String(fam.nom).toLowerCase().trim())
+                );
+                if (matchInDisplay && matchInDisplay.images && matchInDisplay.images.length > 0) {
+                  return { ...fam, images: matchInDisplay.images };
+                }
+              }
+              return fam;
+            });
+          }
 
           // Parse extracted meals for flat management table
           const parsedRepas: MenuRepas[] = [];
@@ -302,6 +322,8 @@ export const MenuView: React.FC = () => {
         setMenuRepasItems([]);
         setMenuBoissonItems([]);
       }
+
+      setFamilles(fetchedFamilles);
     } catch (err: any) {
       console.error("Error fetching menu data:", err);
       setError("Impossible de charger l'ensemble des données du menu.");
@@ -829,7 +851,29 @@ export const MenuView: React.FC = () => {
 
                     {/* Images gallery in the same frame */}
                     {(() => {
-                      const images = famille.images || [];
+                      const rawImages =
+                        famille.images ||
+                        (famille as any).familleImages ||
+                        (famille as any).famille_images ||
+                        (famille as any).images_urls ||
+                        (famille as any).imageUrls ||
+                        [];
+
+                      const images: MenuFamilleImage[] = (Array.isArray(rawImages) ? rawImages : [])
+                        .map((img: any, idx: number) => {
+                          if (typeof img === "string") {
+                            return { id: `img-${famille.id}-${idx}`, familleId: famille.id, imageUrl: img, ordre: idx };
+                          }
+                          return {
+                            id: String(img?.id || img?.public_id || `img-${famille.id}-${idx}`),
+                            familleId: String(img?.familleId || img?.famille_id || famille.id),
+                            imageUrl: String(img?.imageUrl || img?.image_url || img?.url || img?.src || ""),
+                            ordre: img?.ordre ?? idx,
+                            public_id: img?.public_id
+                          };
+                        })
+                        .filter((img) => Boolean(img.imageUrl));
+
                       if (images.length === 0) {
                         return (
                           <div className="h-36 my-4 rounded-xl border border-dashed border-white/10 text-center text-xs text-text-secondary-light dark:text-text-secondary-dark flex flex-col items-center justify-center gap-2 overflow-hidden">
