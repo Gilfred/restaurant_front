@@ -246,6 +246,7 @@ async function runTests() {
 
   // Test Menu Boissons Endpoints
   await createMenuBoisson({
+    menuBoissonFamilleId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     ordre: 0,
     imageUrl: "https://example.com/image.png",
     boissonId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
@@ -255,6 +256,7 @@ async function runTests() {
   assertEqual(
     lastCall.data,
     {
+      menuBoissonFamilleId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       ordre: 0,
       imageUrl: "https://example.com/image.png",
       boissonId: "3fa85f64-5717-4562-b3fc-2c963f66afa6"

@@ -79,26 +79,61 @@ export interface MenuRepasUpdate {
   repasId?: string;
 }
 
-export interface MenuBoisson {
+export interface MenuBoissonFamille {
   id: string;
-  ordre: number;
-  imageUrl?: string | null;
-  boissonId: string;
+  nom: string;
+  restaurantId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  images?: MenuBoissonImage[];
+  boissons?: MenuBoisson[];
+  [key: string]: unknown;
+}
+
+export interface MenuBoissonFamilleCreate {
+  nom: string;
+}
+
+export interface MenuBoissonFamilleUpdate {
+  nom: string;
+}
+
+export interface MenuBoissonImage {
+  id: string;
+  menuBoissonFamilleId: string;
+  url: string;
+  public_id?: string;
   createdAt?: string;
   updatedAt?: string;
   [key: string]: unknown;
 }
 
-export interface MenuBoissonCreate {
+export interface MenuBoisson {
+  id: string;
+  menuBoissonFamilleId: string;
+  boissonId: string;
+  createdAt?: string;
+  updatedAt?: string;
   ordre?: number;
   imageUrl?: string | null;
+  boisson?: unknown;
+  nomBoisson?: string;
+  prix?: number;
+  [key: string]: unknown;
+}
+
+export interface MenuBoissonCreate {
+  menuBoissonFamilleId: string;
   boissonId: string;
+  ordre?: number;
+  imageUrl?: string | null;
 }
 
 export interface MenuBoissonUpdate {
+  menuBoissonFamilleId?: string;
+  boissonId?: string;
   ordre?: number;
   imageUrl?: string | null;
-  boissonId?: string;
 }
 
 export interface MenuDisplayRepasItem {
@@ -146,6 +181,15 @@ export interface MenuDisplayBoissonItem {
     prix?: number;
     [key: string]: unknown;
   };
+  // Structured display support for drink families in display endpoint
+  famille?: {
+    id?: string;
+    nom?: string;
+    restaurantId?: string;
+    [key: string]: unknown;
+  };
+  images?: MenuBoissonImage[];
+  boissons?: MenuDisplayBoissonItem[];
   [key: string]: unknown;
 }
 
