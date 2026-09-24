@@ -2456,19 +2456,6 @@ export const MenuView: React.FC = () => {
 
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    URL de l'image (Optionnel)
-                  </label>
-                  <input
-                    type="url"
-                    value={boissonImageUrl}
-                    onChange={(e) => setBoissonImageUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
                     Ordre d'affichage
                   </label>
                   <input

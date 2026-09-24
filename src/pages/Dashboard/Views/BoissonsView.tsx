@@ -41,9 +41,8 @@ export const BoissonsView: React.FC = () => {
   // Creation modal states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [nomBoisson, setNomBoisson] = useState("");
-  const [contenance, setContenance] = useState("0,55cl");
+  const [contenance, setContenance] = useState("");
   const [prixVente, setPrixVente] = useState<number>(0);
-  const [stock, setStock] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
 
   // Editing modal states
@@ -51,7 +50,6 @@ export const BoissonsView: React.FC = () => {
   const [editNom, setEditNom] = useState("");
   const [editContenance, setEditContenance] = useState("");
   const [editPrixVente, setEditPrixVente] = useState<number>(0);
-  const [editStock, setEditStock] = useState<number>(0);
   const [updating, setUpdating] = useState(false);
 
   // Detailed inspect states
@@ -88,14 +86,12 @@ export const BoissonsView: React.FC = () => {
       await createBoisson({
         nomBoisson,
         contenance,
-        prixVente: Number(prixVente),
-        stock: Number(stock)
+        prixVente: Number(prixVente)
       });
       setSuccess("Boisson créée avec succès !");
       setNomBoisson("");
-      setContenance("0,55cl");
+      setContenance("");
       setPrixVente(0);
-      setStock(0);
       setIsCreateOpen(false);
       fetchBoissons();
     } catch (err: any) {
@@ -113,9 +109,8 @@ export const BoissonsView: React.FC = () => {
   const handleOpenEdit = (b: BoissonResponse) => {
     setEditBoisson(b);
     setEditNom(b.nomBoisson);
-    setEditContenance(b.contenance || "0,55cl");
+    setEditContenance(b.contenance || "");
     setEditPrixVente(b.prixVente || 0);
-    setEditStock(b.stock || 0);
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -130,8 +125,7 @@ export const BoissonsView: React.FC = () => {
       await updateBoisson(editBoisson.id, {
         nomBoisson: editNom,
         contenance: editContenance,
-        prixVente: Number(editPrixVente),
-        stock: Number(editStock)
+        prixVente: Number(editPrixVente)
       });
       setSuccess("Boisson mise à jour avec succès !");
       setEditBoisson(null);
@@ -411,34 +405,18 @@ export const BoissonsView: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                      Prix de Vente (F CFA)
-                    </label>
-                    <input
-                      type="number"
-                      value={prixVente}
-                      onChange={(e) => setPrixVente(Number(e.target.value))}
-                      required
-                      min={0}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                      Stock Initial
-                    </label>
-                    <input
-                      type="number"
-                      value={stock}
-                      onChange={(e) => setStock(Number(e.target.value))}
-                      required
-                      min={0}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
+                    Prix de Vente (F CFA)
+                  </label>
+                  <input
+                    type="number"
+                    value={prixVente}
+                    onChange={(e) => setPrixVente(Number(e.target.value))}
+                    required
+                    min={0}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
+                  />
                 </div>
 
                 <div className="flex gap-4 pt-4">
@@ -512,34 +490,18 @@ export const BoissonsView: React.FC = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                      Prix de Vente (F CFA)
-                    </label>
-                    <input
-                      type="number"
-                      value={editPrixVente}
-                      onChange={(e) => setEditPrixVente(Number(e.target.value))}
-                      required
-                      min={0}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                      Stock
-                    </label>
-                    <input
-                      type="number"
-                      value={editStock}
-                      onChange={(e) => setEditStock(Number(e.target.value))}
-                      required
-                      min={0}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
+                    Prix de Vente (F CFA)
+                  </label>
+                  <input
+                    type="number"
+                    value={editPrixVente}
+                    onChange={(e) => setEditPrixVente(Number(e.target.value))}
+                    required
+                    min={0}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
+                  />
                 </div>
 
                 <div className="flex gap-4 pt-4">
