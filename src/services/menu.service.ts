@@ -12,6 +12,10 @@ import type {
   MenuRepas,
   MenuRepasCreate,
   MenuRepasUpdate,
+  MenuBoissonFamille,
+  MenuBoissonFamilleCreate,
+  MenuBoissonFamilleUpdate,
+  MenuBoissonImage,
   MenuBoisson,
   MenuBoissonCreate,
   MenuBoissonUpdate,
@@ -174,6 +178,77 @@ export const updateMenuRepas = (menuRepasId: string, data: MenuRepasUpdate) => {
  */
 export const deleteMenuRepas = (menuRepasId: string) => {
   return api.delete<void>(`/menus/repas/${menuRepasId}`);
+};
+
+/**
+ * List Boisson Familles
+ * GET /menus/boissons/familles
+ */
+export const listMenuBoissonFamilles = () => {
+  return api.get<MenuBoissonFamille[]>("/menus/boissons/familles");
+};
+
+/**
+ * Create Boisson Famille
+ * POST /menus/boissons/familles
+ */
+export const createMenuBoissonFamille = (data: MenuBoissonFamilleCreate) => {
+  return api.post<MenuBoissonFamille>("/menus/boissons/familles", data);
+};
+
+/**
+ * Get Boisson Famille
+ * GET /menus/boissons/familles/{famille_id}
+ */
+export const getMenuBoissonFamille = (familleId: string) => {
+  return api.get<MenuBoissonFamille>(`/menus/boissons/familles/${familleId}`);
+};
+
+/**
+ * Update Boisson Famille
+ * PATCH /menus/boissons/familles/{famille_id}
+ */
+export const updateMenuBoissonFamille = (familleId: string, data: MenuBoissonFamilleUpdate) => {
+  return api.patch<MenuBoissonFamille>(`/menus/boissons/familles/${familleId}`, data);
+};
+
+/**
+ * Delete Boisson Famille
+ * DELETE /menus/boissons/familles/{famille_id}
+ */
+export const deleteMenuBoissonFamille = (familleId: string) => {
+  return api.delete<void>(`/menus/boissons/familles/${familleId}`);
+};
+
+/**
+ * Upload Boisson Famille Image
+ * POST /menus/boissons/familles/{famille_id}/images
+ */
+export const uploadMenuBoissonFamilleImage = (familleId: string, file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return api.post<MenuBoissonImage>(`/menus/boissons/familles/${familleId}/images`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
+
+/**
+ * List Boisson Famille Images
+ * GET /menus/boissons/familles/{famille_id}/images
+ */
+export const listMenuBoissonFamilleImages = (familleId: string) => {
+  return api.get<MenuBoissonImage[]>(`/menus/boissons/familles/${familleId}/images`);
+};
+
+/**
+ * Delete Boisson Famille Image
+ * DELETE /menus/boissons/images/{image_id}
+ */
+export const deleteMenuBoissonImage = (imageId: string) => {
+  return api.delete<void>(`/menus/boissons/images/${imageId}`);
 };
 
 /**
