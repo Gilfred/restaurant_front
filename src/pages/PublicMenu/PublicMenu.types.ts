@@ -36,6 +36,13 @@ export interface BoissonDisplay {
   imageUrl?: string | null;
 }
 
+export interface BoissonFamilleDisplay {
+  id: string;
+  nom: string;
+  images: FamilleImageDisplay[];
+  boissons: BoissonDisplay[];
+}
+
 export interface RestaurantDisplay {
   id: string;
   name: string;
@@ -47,6 +54,7 @@ export interface RestaurantDisplay {
   phone?: string;
   familles: FamilleDisplay[];
   boissons: BoissonDisplay[];
+  boissonFamilles?: BoissonFamilleDisplay[];
 }
 
 // Legacy interfaces for backwards compatibility if needed

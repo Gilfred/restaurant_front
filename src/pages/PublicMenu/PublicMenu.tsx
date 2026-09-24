@@ -113,26 +113,69 @@ export const parseRestaurantDisplayData = (item: any): RestaurantDisplay => {
     familleList.sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
   }
 
-  // Extract Beverages (Boissons)
+  // Extract Beverages (Boissons) - Supports flat list or family groupings with family images
   const boissonList: BoissonDisplay[] = [];
+  const boissonFamilleList: any[] = [];
 
   if (item.boissons && Array.isArray(item.boissons)) {
     item.boissons.forEach((bItem: any) => {
-      const boissonData = bItem.boisson || bItem;
-      const nomBoisson = boissonData.nomBoisson || boissonData.nom || bItem.nomBoisson || bItem.nom || '';
-      if (nomBoisson) {
-        const rawPrix = (boissonData.prix !== undefined && boissonData.prix !== null)
-          ? Number(boissonData.prix)
-          : (bItem.prix !== undefined && bItem.prix !== null) ? Number(bItem.prix) : null;
+      // Check if bItem is a beverage family grouping (contains nested boissons array)
+      const subBoissons = bItem.boissons || bItem.boissonList || bItem.items;
+      if (subBoissons && Array.isArray(subBoissons)) {
+        const famNom = bItem.famille?.nom || bItem.nom || 'Nos Boissons';
+        const famImages = (bItem.images || []).map((img: any) => ({
+          id: String(img.id || `img-${Math.random()}`),
+          imageUrl: String(img.url || img.imageUrl || ''),
+          ordre: img.ordre ?? 0
+        })).filter((img: any) => Boolean(img.imageUrl));
 
-        boissonList.push({
-          id: String(bItem.id || boissonData.id || `boisson-${Math.random()}`),
-          nom: nomBoisson,
-          description: boissonData.description || undefined,
-          prix: rawPrix,
-          formattedPrice: rawPrix !== null ? `${rawPrix.toLocaleString()} F CFA` : '',
-          imageUrl: bItem.imageUrl || boissonData.imageUrl || null
+        const subList: BoissonDisplay[] = [];
+        subBoissons.forEach((subItem: any) => {
+          const boissonData = subItem.boisson || subItem;
+          const nomBoisson = boissonData.nomBoisson || boissonData.nom || subItem.nomBoisson || subItem.nom || '';
+          if (nomBoisson) {
+            const rawPrix = (boissonData.prix !== undefined && boissonData.prix !== null)
+              ? Number(boissonData.prix)
+              : (subItem.prix !== undefined && subItem.prix !== null) ? Number(subItem.prix) : null;
+
+            const bDisplay: BoissonDisplay = {
+              id: String(subItem.id || boissonData.id || `boisson-${Math.random()}`),
+              nom: nomBoisson,
+              description: boissonData.description || undefined,
+              prix: rawPrix,
+              formattedPrice: rawPrix !== null ? `${rawPrix.toLocaleString()} F CFA` : '',
+              imageUrl: subItem.imageUrl || boissonData.imageUrl || null
+            };
+            subList.push(bDisplay);
+            boissonList.push(bDisplay);
+          }
         });
+
+        if (subList.length > 0 || famImages.length > 0) {
+          boissonFamilleList.push({
+            id: String(bItem.famille?.id || bItem.id || `bfam-${Math.random()}`),
+            nom: famNom,
+            images: famImages,
+            boissons: subList
+          });
+        }
+      } else {
+        const boissonData = bItem.boisson || bItem;
+        const nomBoisson = boissonData.nomBoisson || boissonData.nom || bItem.nomBoisson || bItem.nom || '';
+        if (nomBoisson) {
+          const rawPrix = (boissonData.prix !== undefined && boissonData.prix !== null)
+            ? Number(boissonData.prix)
+            : (bItem.prix !== undefined && bItem.prix !== null) ? Number(bItem.prix) : null;
+
+          boissonList.push({
+            id: String(bItem.id || boissonData.id || `boisson-${Math.random()}`),
+            nom: nomBoisson,
+            description: boissonData.description || undefined,
+            prix: rawPrix,
+            formattedPrice: rawPrix !== null ? `${rawPrix.toLocaleString()} F CFA` : '',
+            imageUrl: bItem.imageUrl || boissonData.imageUrl || null
+          });
+        }
       }
     });
   }
@@ -146,7 +189,8 @@ export const parseRestaurantDisplayData = (item: any): RestaurantDisplay => {
     description: restoObj.description || undefined,
     address: restoObj.address || restoObj.adresse || undefined,
     familles: familleList,
-    boissons: boissonList
+    boissons: boissonList,
+    boissonFamilles: boissonFamilleList
   };
 };
 
@@ -456,8 +500,65 @@ export const PublicMenu: React.FC = () => {
                     </div>
                   ))}
 
-                  {/* Render Boissons Section */}
-                  {selectedRestaurant.boissons.length > 0 && (
+                  {/* Render Boissons Section (Structured Families vs Flat fallback) */}
+                  {selectedRestaurant.boissonFamilles && selectedRestaurant.boissonFamilles.length > 0 ? (
+                    selectedRestaurant.boissonFamilles.map((bfam) => (
+                      <div key={bfam.id} className="space-y-6 glass-card-premium p-6 sm:p-8 rounded-3xl">
+                        <div className="flex items-center gap-3 border-b border-black/10 dark:border-white/10 pb-4">
+                          <Wine className="w-7 h-7 text-accent-light" />
+                          <h3 className="text-3xl font-extrabold text-text-primary-light dark:text-text-primary-dark tracking-tight">
+                            {bfam.nom}
+                          </h3>
+                        </div>
+
+                        {/* Images de la famille de boissons */}
+                        {bfam.images && bfam.images.length > 0 && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-4">
+                            {bfam.images.map((img) => (
+                              <div key={img.id} className="h-48 sm:h-56 rounded-2xl overflow-hidden bg-slate-900 border border-white/10 shadow-md">
+                                <img src={img.imageUrl} alt={bfam.nom} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Liste des boissons */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {bfam.boissons.map((boisson) => (
+                            <motion.div
+                              key={boisson.id}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              className="glass-card-premium p-6 hover:bg-white/50 dark:hover:bg-slate-800/60 transition-colors group flex items-center gap-4"
+                            >
+                              {boisson.imageUrl ? (
+                                <img src={boisson.imageUrl} alt={boisson.nom} className="w-20 h-20 object-cover rounded-2xl border border-white/10 flex-shrink-0" />
+                              ) : (
+                                <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark flex-shrink-0">
+                                  <Wine size={28} className="opacity-30" />
+                                </div>
+                              )}
+                              <div className="flex-1 space-y-1 min-w-0">
+                                <h5 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark group-hover:text-accent-light transition-colors truncate">
+                                  {boisson.nom}
+                                </h5>
+                                {boisson.formattedPrice && (
+                                  <p className="text-accent-light font-bold text-base">
+                                    {boisson.formattedPrice}
+                                  </p>
+                                )}
+                                {boisson.description && (
+                                  <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark line-clamp-2">
+                                    {boisson.description}
+                                  </p>
+                                )}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : selectedRestaurant.boissons.length > 0 ? (
                     <div className="space-y-6 glass-card-premium p-6 sm:p-8 rounded-3xl">
                       <div className="flex items-center gap-3 border-b border-black/10 dark:border-white/10 pb-4">
                         <Wine className="w-7 h-7 text-accent-light" />
@@ -499,7 +600,7 @@ export const PublicMenu: React.FC = () => {
                         ))}
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   {selectedRestaurant.familles.length === 0 && selectedRestaurant.boissons.length === 0 && (
                     <div className="glass-card-premium p-12 text-center">

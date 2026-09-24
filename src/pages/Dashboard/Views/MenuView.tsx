@@ -39,6 +39,12 @@ import {
   createMenuRepas,
   updateMenuRepas,
   deleteMenuRepas,
+  listMenuBoissonFamilles,
+  createMenuBoissonFamille,
+  updateMenuBoissonFamille,
+  deleteMenuBoissonFamille,
+  uploadMenuBoissonFamilleImage,
+  deleteMenuBoissonImage,
   createMenuBoisson,
   updateMenuBoisson,
   deleteMenuBoisson
@@ -53,6 +59,7 @@ import type {
   MenuFamilleImage,
   MenuCategorie,
   MenuRepas,
+  MenuBoissonFamille,
   MenuBoisson
 } from "../../../types/menu";
 import type { RepasResponse } from "../../../types/repas";
@@ -78,6 +85,9 @@ export const MenuView: React.FC = () => {
   const [allRestaurantRepas, setAllRestaurantRepas] = useState<RepasResponse[]>([]);
   const [allRestaurantBoissons, setAllRestaurantBoissons] = useState<BoissonResponse[]>([]);
   const [displayRestaurant, setDisplayRestaurant] = useState<RestaurantDisplay | null>(null);
+
+  // Beverage Familles state
+  const [boissonFamilles, setBoissonFamilles] = useState<MenuBoissonFamille[]>([]);
 
   // Menu items parsed from display
   const [menuRepasItems, setMenuRepasItems] = useState<MenuRepas[]>([]);
@@ -132,9 +142,20 @@ export const MenuView: React.FC = () => {
   const [selectedCategorieId, setSelectedCategorieId] = useState<string>("");
   const [repasOrdre, setRepasOrdre] = useState<number>(0);
 
-  // 5. Boisson Modal (Create / Edit)
+  // 5. Boisson Famille Modal (Create / Edit)
+  const [isBoissonFamilleModalOpen, setIsBoissonFamilleModalOpen] = useState(false);
+  const [editingBoissonFamille, setEditingBoissonFamille] = useState<MenuBoissonFamille | null>(null);
+  const [boissonFamilleNom, setBoissonFamilleNom] = useState("");
+
+  // 6. Boisson Famille Image Upload Modal
+  const [isBoissonImageUploadModalOpen, setIsBoissonImageUploadModalOpen] = useState(false);
+  const [selectedBoissonFamilleForUpload, setSelectedBoissonFamilleForUpload] = useState<string>("");
+  const [boissonImageFile, setBoissonImageFile] = useState<File | null>(null);
+
+  // 7. Boisson Association Modal (Add / Move drink in family)
   const [isBoissonModalOpen, setIsBoissonModalOpen] = useState(false);
   const [editingMenuBoisson, setEditingMenuBoisson] = useState<MenuBoisson | null>(null);
+  const [selectedBoissonFamilleId, setSelectedBoissonFamilleId] = useState<string>("");
   const [selectedBoissonId, setSelectedBoissonId] = useState<string>("");
   const [boissonImageUrl, setBoissonImageUrl] = useState<string>("");
   const [boissonOrdre, setBoissonOrdre] = useState<number>(0);
@@ -145,14 +166,15 @@ export const MenuView: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const [meRes, famillesRes, categoriesRes, categoryNomsRes, repasRes, boissonsRes, displayRes] = await Promise.allSettled([
+      const [meRes, famillesRes, categoriesRes, categoryNomsRes, repasRes, boissonsRes, displayRes, boissonFamillesRes] = await Promise.allSettled([
         getMeRestaurant(),
         listFamilles(),
         listAvailableCategories(),
         listCategoryNoms(),
         listRepas(),
         listBoissons(),
-        getPublicMenuDisplay()
+        getPublicMenuDisplay(),
+        listMenuBoissonFamilles()
       ]);
 
       let userRestoId: string | null = null;
@@ -166,6 +188,11 @@ export const MenuView: React.FC = () => {
       let fetchedFamilles: MenuFamille[] = [];
       if (famillesRes.status === "fulfilled") {
         fetchedFamilles = famillesRes.value.data || [];
+      }
+
+      let fetchedBoissonFamilles: MenuBoissonFamille[] = [];
+      if (boissonFamillesRes.status === "fulfilled") {
+        fetchedBoissonFamilles = boissonFamillesRes.value.data || [];
       }
       if (categoriesRes.status === "fulfilled") {
         const raw = categoriesRes.value.data;
@@ -324,6 +351,7 @@ export const MenuView: React.FC = () => {
       }
 
       setFamilles(fetchedFamilles);
+      setBoissonFamilles(fetchedBoissonFamilles);
     } catch (err: any) {
       console.error("Error fetching menu data:", err);
       setError("Impossible de charger l'ensemble des données du menu.");
@@ -506,6 +534,91 @@ export const MenuView: React.FC = () => {
     }
   };
 
+  // --- Handlers: Familles de Boissons ---
+  const handleSaveBoissonFamille = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      if (editingBoissonFamille) {
+        await updateMenuBoissonFamille(editingBoissonFamille.id, { nom: boissonFamilleNom });
+        setSuccess("Famille de boissons mise à jour avec succès !");
+      } else {
+        await createMenuBoissonFamille({ nom: boissonFamilleNom });
+        setSuccess("Famille de boissons créée avec succès !");
+      }
+      setIsBoissonFamilleModalOpen(false);
+      setBoissonFamilleNom("");
+      setEditingBoissonFamille(null);
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(getErrorMessage(err, "Échec de l'enregistrement de la famille de boissons."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteBoissonFamille = async (familleId: string) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette famille de boissons ?")) return;
+    try {
+      await deleteMenuBoissonFamille(familleId);
+      setSuccess("Famille de boissons supprimée avec succès.");
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(getErrorMessage(err, "Erreur lors de la suppression de la famille de boissons."));
+    }
+  };
+
+  // --- Handlers: Images des Familles de Boissons ---
+  const handleUploadBoissonFamilleImage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!boissonImageFile || !selectedBoissonFamilleForUpload) {
+      setError("Veuillez sélectionner un fichier image et une famille de boissons.");
+      return;
+    }
+
+    const targetFam = boissonFamilles.find((f) => f.id === selectedBoissonFamilleForUpload);
+    const existingCount = targetFam?.images?.length ?? 0;
+    if (existingCount >= 3) {
+      setError("Une famille de boissons ne peut pas contenir plus de 3 images.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await uploadMenuBoissonFamilleImage(selectedBoissonFamilleForUpload, boissonImageFile);
+      setSuccess("Image ajoutée à la famille de boissons avec succès !");
+      setIsBoissonImageUploadModalOpen(false);
+      setBoissonImageFile(null);
+      setSelectedBoissonFamilleForUpload("");
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(getErrorMessage(err, "Échec du téléversement de l'image."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteBoissonFamilleImage = async (imageId: string) => {
+    if (!window.confirm("Supprimer cette image de la famille de boissons ?")) return;
+    try {
+      await deleteMenuBoissonImage(imageId);
+      setSuccess("Image supprimée avec succès.");
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setError(getErrorMessage(err, "Erreur lors de la suppression de l'image."));
+    }
+  };
+
   // --- Handlers: Boissons au Menu ---
   const handleSaveMenuBoisson = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -516,26 +629,29 @@ export const MenuView: React.FC = () => {
     try {
       if (editingMenuBoisson) {
         await updateMenuBoisson(editingMenuBoisson.id, {
+          menuBoissonFamilleId: selectedBoissonFamilleId || editingMenuBoisson.menuBoissonFamilleId,
           boissonId: selectedBoissonId || editingMenuBoisson.boissonId,
           imageUrl: boissonImageUrl || null,
           ordre: boissonOrdre
         });
         setSuccess("Boisson du menu mise à jour avec succès !");
       } else {
-        if (!selectedBoissonId) {
-          setError("Veuillez sélectionner une boisson.");
+        if (!selectedBoissonId || !selectedBoissonFamilleId) {
+          setError("Veuillez sélectionner une boisson et une famille de boissons.");
           setSubmitting(false);
           return;
         }
         await createMenuBoisson({
+          menuBoissonFamilleId: selectedBoissonFamilleId,
           boissonId: selectedBoissonId,
           imageUrl: boissonImageUrl || null,
           ordre: boissonOrdre
         });
-        setSuccess("Boisson ajoutée au menu avec succès !");
+        setSuccess("Boisson ajoutée à la famille avec succès !");
       }
       setIsBoissonModalOpen(false);
       setEditingMenuBoisson(null);
+      setSelectedBoissonFamilleId("");
       setSelectedBoissonId("");
       setBoissonImageUrl("");
       setBoissonOrdre(0);
@@ -813,19 +929,35 @@ export const MenuView: React.FC = () => {
               )}
 
               {gestionTab === "boissons" && (
-                <button
-                  onClick={() => {
-                    setEditingMenuBoisson(null);
-                    setSelectedBoissonId("");
-                    setBoissonImageUrl("");
-                    setBoissonOrdre(0);
-                    setIsBoissonModalOpen(true);
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-[0.98]"
-                >
-                  <Plus size={16} />
-                  Ajouter une boisson au menu
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setEditingBoissonFamille(null);
+                      setBoissonFamilleNom("");
+                      setIsBoissonFamilleModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-accent-light hover:bg-accent-dark text-white rounded-xl font-bold text-sm transition-all shadow-md active:scale-[0.98]"
+                  >
+                    <FolderPlus size={16} />
+                    Créer une famille de boissons
+                  </button>
+                  {boissonFamilles.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setEditingMenuBoisson(null);
+                        setSelectedBoissonFamilleId(boissonFamilles[0]?.id || "");
+                        setSelectedBoissonId("");
+                        setBoissonImageUrl("");
+                        setBoissonOrdre(0);
+                        setIsBoissonModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 glass-capsule border border-accent-light/30 text-accent-light hover:bg-accent-light/10 rounded-xl font-bold text-sm transition-all active:scale-[0.98]"
+                    >
+                      <Plus size={16} />
+                      Ajouter une boisson
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -1243,94 +1375,211 @@ export const MenuView: React.FC = () => {
             </div>
           )}
 
-          {/* Sub-Tab 3: Boissons */}
+          {/* Sub-Tab 4: Boissons par Familles */}
           {gestionTab === "boissons" && (
-            <div className="space-y-6">
-              <div className="glass-card-premium overflow-hidden">
-                <div className="p-6 border-b border-black/5 dark:border-white/5 flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">
-                    Boissons actuellement au Menu
-                  </h3>
-                  <span className="text-xs font-semibold px-3 py-1 bg-white/10 rounded-full text-text-secondary-light dark:text-text-secondary-dark">
-                    {menuBoissonItems.length} boisson(s)
-                  </span>
-                </div>
+            <div className="space-y-8">
+              {boissonFamilles.map((famille) => {
+                const images = famille.images || [];
+                const maxImagesReached = images.length >= 3;
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 text-xs text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
-                        <th className="p-4">Boisson</th>
-                        <th className="p-4">Image</th>
-                        <th className="p-4">Ordre</th>
-                        <th className="p-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-black/5 dark:divide-white/5 text-sm">
-                      {menuBoissonItems.map((item) => {
-                        const matchedBoisson = allRestaurantBoissons.find((b) => b.id === item.boissonId);
-                        const displayName = String((item as any).nomBoisson || (item as any).nom || matchedBoisson?.nomBoisson || item.boissonId);
-                        const displayPrice = (item as any).prix || matchedBoisson?.prix;
+                // Find drinks associated with this beverage family
+                const associatedBoissons = menuBoissonItems.filter((item) => {
+                  return (
+                    String((item as any).menuBoissonFamilleId || (item as any).familleId || "") === String(famille.id) ||
+                    String((item as any).menu_boisson_famille_id || "") === String(famille.id)
+                  );
+                });
 
-                        return (
-                          <tr key={item.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                            <td className="p-4 font-semibold text-text-primary-light dark:text-text-primary-dark">
-                              <div>{displayName}</div>
-                              {displayPrice && (
-                                <div className="text-xs font-bold text-accent-light">
-                                  {Number(displayPrice).toLocaleString()} F CFA
-                                </div>
-                              )}
-                            </td>
-                            <td className="p-4">
-                              {item.imageUrl ? (
-                                <img src={item.imageUrl} alt={displayName} className="w-10 h-10 object-cover rounded-xl border border-white/10" />
-                              ) : (
-                                <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark italic">S/I</span>
-                              )}
-                            </td>
-                            <td className="p-4">
-                              <span className="px-2.5 py-1 bg-white/10 rounded-full text-xs font-bold">
-                                {item.ordre}
-                              </span>
-                            </td>
-                            <td className="p-4 text-right space-x-2">
-                              <button
-                                onClick={() => {
-                                  setEditingMenuBoisson(item);
-                                  setSelectedBoissonId(item.boissonId);
-                                  setBoissonImageUrl(item.imageUrl || "");
-                                  setBoissonOrdre(item.ordre || 0);
-                                  setIsBoissonModalOpen(true);
-                                }}
-                                className="p-2 rounded-xl glass-capsule text-text-primary-light dark:text-text-primary-dark hover:bg-white/10 transition-colors"
-                                title="Modifier l'image / l'ordre"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteMenuBoisson(item.id)}
-                                className="p-2 rounded-xl glass-capsule text-red-500 hover:bg-red-500/10 transition-colors"
-                                title="Retirer du menu"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                return (
+                  <div key={famille.id} className="glass-card-premium p-6 sm:p-8 space-y-6">
+                    {/* Header of Beverage Family */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-black/10 dark:border-white/10 pb-4">
+                      <div>
+                        <h3 className="text-2xl font-extrabold text-text-primary-light dark:text-text-primary-dark">
+                          {famille.nom}
+                        </h3>
+                        <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-1">
+                          {associatedBoissons.length} boisson(s) dans cette famille • {images.length}/3 image(s)
+                        </p>
+                      </div>
 
-                      {menuBoissonItems.length === 0 && (
-                        <tr>
-                          <td colSpan={4} className="p-8 text-center text-text-secondary-light dark:text-text-secondary-dark">
-                            Aucune boisson figurant dans le menu actuellement. Cliquez sur "+ Ajouter une boisson au menu" pour ajouter une boisson existante.
-                          </td>
-                        </tr>
+                      <div className="flex items-center gap-2">
+                        {!maxImagesReached ? (
+                          <button
+                            onClick={() => {
+                              setSelectedBoissonFamilleForUpload(famille.id);
+                              setBoissonImageFile(null);
+                              setIsBoissonImageUploadModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-capsule text-xs font-bold text-accent-light hover:bg-accent-light/10 transition-colors"
+                          >
+                            <Upload size={14} />
+                            Ajouter une image
+                          </button>
+                        ) : (
+                          <span className="text-xs px-3 py-1.5 bg-white/5 rounded-xl text-text-secondary-light dark:text-text-secondary-dark italic">
+                            Max 3 images
+                          </span>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            setEditingMenuBoisson(null);
+                            setSelectedBoissonFamilleId(famille.id);
+                            setSelectedBoissonId("");
+                            setBoissonImageUrl("");
+                            setBoissonOrdre(0);
+                            setIsBoissonModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent-light hover:bg-accent-dark text-white text-xs font-bold transition-all shadow-sm"
+                        >
+                          <Plus size={14} />
+                          Ajouter une boisson
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setEditingBoissonFamille(famille);
+                            setBoissonFamilleNom(famille.nom);
+                            setIsBoissonFamilleModalOpen(true);
+                          }}
+                          className="p-2 rounded-xl glass-capsule text-text-primary-light dark:text-text-primary-dark hover:bg-white/10 transition-colors"
+                          title="Modifier le nom de la famille"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteBoissonFamille(famille.id)}
+                          className="p-2 rounded-xl glass-capsule text-red-500 hover:bg-red-500/10 transition-colors"
+                          title="Supprimer la famille de boissons"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Images of Beverage Family (Max 3) */}
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary-light dark:text-text-secondary-dark">
+                        Images de la famille ({images.length}/3)
+                      </h4>
+                      {images.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                          {images.map((img) => (
+                            <div key={img.id} className="h-36 rounded-2xl overflow-hidden relative group border border-white/10 bg-black/20">
+                              <img src={img.url || (img as any).imageUrl} alt={famille.nom} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button
+                                  onClick={() => handleDeleteBoissonFamilleImage(img.id)}
+                                  className="p-2 bg-red-500 text-white rounded-xl hover:scale-110 transition-transform flex items-center gap-1 text-xs font-bold"
+                                  title="Supprimer l'image"
+                                >
+                                  <Trash2 size={14} />
+                                  Supprimer
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-2xl border border-dashed border-white/10 text-center text-xs text-text-secondary-light dark:text-text-secondary-dark flex items-center justify-center gap-2">
+                          <ImageIcon size={16} className="opacity-40" />
+                          <span>Aucune image pour cette famille de boissons.</span>
+                        </div>
                       )}
-                    </tbody>
-                  </table>
+                    </div>
+
+                    {/* Drinks List in Beverage Family */}
+                    <div className="space-y-2 pt-2">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary-light dark:text-text-secondary-dark">
+                        Boissons incluses
+                      </h4>
+
+                      {associatedBoissons.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {associatedBoissons.map((item) => {
+                            const matchedBoisson = allRestaurantBoissons.find((b) => b.id === item.boissonId);
+                            const displayName = String((item as any).nomBoisson || (item as any).nom || matchedBoisson?.nomBoisson || item.boissonId);
+                            const displayPrice = (item as any).prix || matchedBoisson?.prix;
+
+                            return (
+                              <div
+                                key={item.id}
+                                className="p-3.5 glass-card-premium border border-white/10 rounded-2xl flex items-center justify-between group"
+                              >
+                                <div className="space-y-0.5 min-w-0 pr-2">
+                                  <p className="font-bold text-sm text-text-primary-light dark:text-text-primary-dark truncate">
+                                    {displayName}
+                                  </p>
+                                  {displayPrice && (
+                                    <p className="text-xs font-extrabold text-accent-light">
+                                      {Number(displayPrice).toLocaleString()} F CFA
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => {
+                                      setEditingMenuBoisson(item);
+                                      setSelectedBoissonFamilleId(famille.id);
+                                      setSelectedBoissonId(item.boissonId);
+                                      setBoissonImageUrl(item.imageUrl || "");
+                                      setBoissonOrdre(item.ordre || 0);
+                                      setIsBoissonModalOpen(true);
+                                    }}
+                                    className="p-1.5 rounded-lg glass-capsule text-text-primary-light dark:text-text-primary-dark hover:bg-white/10 transition-colors"
+                                    title="Changer de famille / modifier"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteMenuBoisson(item.id)}
+                                    className="p-1.5 rounded-lg glass-capsule text-red-500 hover:bg-red-500/10 transition-colors"
+                                    title="Retirer la boisson"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-2xl bg-white/5 text-center text-xs text-text-secondary-light dark:text-text-secondary-dark italic">
+                          Aucune boisson dans cette famille. Cliquez sur "Ajouter une boisson" pour lui en associer une.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {boissonFamilles.length === 0 && (
+                <div className="glass-card-premium p-12 text-center col-span-full space-y-4">
+                  <Wine className="w-12 h-12 text-text-secondary-light dark:text-text-secondary-dark mx-auto opacity-50" />
+                  <div>
+                    <p className="text-text-primary-light dark:text-text-primary-dark font-bold text-lg">
+                      Aucune famille de boissons
+                    </p>
+                    <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm mt-1">
+                      Commencez par créer une famille de boissons (ex: "Nos boissons en bouteille", "Nos boissons importées", "Nos liqueurs").
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingBoissonFamille(null);
+                      setBoissonFamilleNom("");
+                      setIsBoissonFamilleModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-light text-white rounded-xl font-bold text-sm shadow-md hover:bg-accent-dark transition-all"
+                  >
+                    <FolderPlus size={16} />
+                    Créer une famille de boissons
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -1998,7 +2247,149 @@ export const MenuView: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Modal 5: Boisson au Menu (Create / Edit) */}
+      {/* Modal 5: Famille de Boissons (Create / Edit) */}
+      <AnimatePresence>
+        {isBoissonFamilleModalOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card-premium w-full max-w-lg p-8 relative overflow-hidden border border-white/20 dark:border-white/5"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2">
+                  <FolderPlus className="w-5 h-5 text-accent-light" />
+                  <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                    {editingBoissonFamille ? "Modifier Famille de Boissons" : "Nouvelle Famille de Boissons"}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsBoissonFamilleModalOpen(false)}
+                  className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary-light dark:text-text-secondary-dark transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveBoissonFamille} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
+                    Nom de la famille de boissons
+                  </label>
+                  <input
+                    type="text"
+                    value={boissonFamilleNom}
+                    onChange={(e) => setBoissonFamilleNom(e.target.value)}
+                    required
+                    placeholder="Ex: Nos boissons en bouteille, Nos boissons importées..."
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsBoissonFamilleModalOpen(false)}
+                    className="flex-1 py-3.5 glass-capsule rounded-2xl font-bold text-sm text-text-primary-light dark:text-text-primary-dark hover:scale-[1.02] transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 py-3.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-light/20 transition-all hover:scale-[1.02] disabled:opacity-50"
+                  >
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Enregistrer"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal 6: Upload Image de Famille de Boissons */}
+      <AnimatePresence>
+        {isBoissonImageUploadModalOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card-premium w-full max-w-lg p-8 relative overflow-hidden border border-white/20 dark:border-white/5"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2">
+                  <Upload className="w-5 h-5 text-accent-light" />
+                  <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                    Ajouter une Image (Famille Boissons)
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsBoissonImageUploadModalOpen(false)}
+                  className="p-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary-light dark:text-text-secondary-dark transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleUploadBoissonFamilleImage} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
+                    Famille de Boissons
+                  </label>
+                  <select
+                    value={selectedBoissonFamilleForUpload}
+                    onChange={(e) => setSelectedBoissonFamilleForUpload(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  >
+                    <option value="" className="bg-slate-900 text-white">-- Choisir une famille --</option>
+                    {boissonFamilles.map((f) => (
+                      <option key={f.id} value={f.id} className="bg-slate-900 text-white">
+                        {f.nom} ({(f.images?.length ?? 0)}/3 images)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
+                    Fichier Image
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setBoissonImageFile(e.target.files?.[0] || null)}
+                    required
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  />
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsBoissonImageUploadModalOpen(false)}
+                    className="flex-1 py-3.5 glass-capsule rounded-2xl font-bold text-sm text-text-primary-light dark:text-text-primary-dark hover:scale-[1.02] transition-all"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 py-3.5 bg-accent-light hover:bg-accent-dark text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-accent-light/20 transition-all hover:scale-[1.02] disabled:opacity-50"
+                  >
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Téléverser"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal 7: Boisson au Menu (Create / Edit Association) */}
       <AnimatePresence>
         {isBoissonModalOpen && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[100] flex items-center justify-center p-4">
@@ -2012,7 +2403,7 @@ export const MenuView: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Wine className="w-5 h-5 text-accent-light" />
                   <h3 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
-                    {editingMenuBoisson ? "Modifier Boisson du Menu" : "Ajouter une Boisson au Menu"}
+                    {editingMenuBoisson ? "Modifier l'association de Boisson" : "Ajouter une Boisson à la famille"}
                   </h3>
                 </div>
                 <button
@@ -2024,6 +2415,25 @@ export const MenuView: React.FC = () => {
               </div>
 
               <form onSubmit={handleSaveMenuBoisson} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
+                    Famille de Boissons
+                  </label>
+                  <select
+                    value={selectedBoissonFamilleId}
+                    onChange={(e) => setSelectedBoissonFamilleId(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
+                  >
+                    <option value="" className="bg-slate-900 text-white">-- Choisir la famille destination --</option>
+                    {boissonFamilles.map((f) => (
+                      <option key={f.id} value={f.id} className="bg-slate-900 text-white">
+                        {f.nom}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
                     Sélectionner une Boisson existante
