@@ -1379,16 +1379,24 @@ export const MenuView: React.FC = () => {
           {gestionTab === "boissons" && (
             <div className="space-y-8">
               {boissonFamilles.map((famille) => {
-                const images = famille.images || [];
+                const rawImages = famille.images || (famille as any).familleImages || (famille as any).images_urls || (famille as any).boissonImages || [];
+                const images = (Array.isArray(rawImages) ? rawImages : [])
+                  .map((img: any, idx: number) => ({
+                    id: String(img?.id || img?.public_id || `bimg-${famille.id}-${idx}`),
+                    url: String(img?.url || img?.imageUrl || img?.image_url || img?.src || ""),
+                    public_id: img?.public_id
+                  }))
+                  .filter((img) => Boolean(img.url));
+
                 const maxImagesReached = images.length >= 3;
 
                 // Find drinks associated with this beverage family
-                const associatedBoissons = menuBoissonItems.filter((item) => {
-                  return (
-                    String((item as any).menuBoissonFamilleId || (item as any).familleId || "") === String(famille.id) ||
-                    String((item as any).menu_boisson_famille_id || "") === String(famille.id)
-                  );
+                const itemsFromState = menuBoissonItems.filter((item) => {
+                  const famId = String((item as any).menuBoissonFamilleId || (item as any).familleId || (item as any).menu_boisson_famille_id || (item as any).menuBoissonFamille?.id || "");
+                  return famId === String(famille.id);
                 });
+                const itemsFromFamille = famille.boissons || (famille as any).boissonList || [];
+                const associatedBoissons = itemsFromState.length > 0 ? itemsFromState : itemsFromFamille;
 
                 return (
                   <div key={famille.id} className="glass-card-premium p-6 sm:p-8 space-y-6">
@@ -1459,16 +1467,33 @@ export const MenuView: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Images of Beverage Family (Max 3) */}
+                    {/* Images of Beverage Family (Max 3, dynamic space allocation) */}
                     <div className="space-y-2">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary-light dark:text-text-secondary-dark">
                         Images de la famille ({images.length}/3)
                       </h4>
                       {images.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <div
+                          className={`grid gap-4 w-full ${
+                            images.length === 1
+                              ? "grid-cols-1"
+                              : images.length === 2
+                              ? "grid-cols-1 sm:grid-cols-2"
+                              : "grid-cols-1 sm:grid-cols-3"
+                          }`}
+                        >
                           {images.map((img) => (
-                            <div key={img.id} className="h-36 rounded-2xl overflow-hidden relative group border border-white/10 bg-black/20">
-                              <img src={img.url || (img as any).imageUrl} alt={famille.nom} className="w-full h-full object-cover" />
+                            <div
+                              key={img.id}
+                              className={`${
+                                images.length === 1
+                                  ? "h-56 sm:h-64"
+                                  : images.length === 2
+                                  ? "h-48 sm:h-56"
+                                  : "h-40 sm:h-48"
+                              } rounded-2xl overflow-hidden relative group border border-white/10 bg-black/20 w-full`}
+                            >
+                              <img src={img.url} alt={famille.nom} className="w-full h-full object-cover" />
                               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <button
                                   onClick={() => handleDeleteBoissonFamilleImage(img.id)}
@@ -2452,19 +2477,6 @@ export const MenuView: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    Ordre d'affichage
-                  </label>
-                  <input
-                    type="number"
-                    value={boissonOrdre}
-                    onChange={(e) => setBoissonOrdre(parseInt(e.target.value) || 0)}
-                    placeholder="0"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
-                  />
                 </div>
 
                 <div className="flex gap-4 pt-4">
