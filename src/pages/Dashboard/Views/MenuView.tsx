@@ -1749,8 +1749,73 @@ export const MenuView: React.FC = () => {
                   </div>
                 ))}
 
-                {/* Boissons Section */}
-                {displayRestaurant.boissons.length > 0 && (
+                {/* Boissons Section (Structured Families vs Flat fallback) */}
+                {displayRestaurant.boissonFamilles && displayRestaurant.boissonFamilles.length > 0 ? (
+                  displayRestaurant.boissonFamilles.map((bfam) => (
+                    <div key={bfam.id} className="space-y-6 glass-card-premium p-6 sm:p-8 rounded-3xl">
+                      <div className="flex items-center gap-3 border-b border-black/10 dark:border-white/10 pb-4">
+                        <Wine className="w-7 h-7 text-accent-light" />
+                        <h3 className="text-3xl font-extrabold text-text-primary-light dark:text-text-primary-dark tracking-tight">
+                          {bfam.nom}
+                        </h3>
+                      </div>
+
+                      {/* Images de la famille de boissons */}
+                      {bfam.images && bfam.images.length > 0 && (
+                        <div className={`grid gap-4 my-4 ${
+                          bfam.images.length === 1 ? 'grid-cols-1' :
+                          bfam.images.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
+                          'grid-cols-1 sm:grid-cols-3'
+                        }`}>
+                          {bfam.images.map((img) => (
+                            <div key={img.id} className={`${
+                              bfam.images.length === 1 ? 'h-56 sm:h-64' :
+                              bfam.images.length === 2 ? 'h-48 sm:h-56' :
+                              'h-40 sm:h-48'
+                            } rounded-2xl overflow-hidden bg-slate-900 border border-white/10 shadow-md`}>
+                              <img src={img.imageUrl} alt={bfam.nom} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Liste des boissons */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {bfam.boissons.map((boisson) => (
+                          <motion.div
+                            key={boisson.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="glass-card-premium p-6 hover:bg-white/50 dark:hover:bg-slate-800/60 transition-colors group flex items-center gap-4"
+                          >
+                            {boisson.imageUrl ? (
+                              <img src={boisson.imageUrl} alt={boisson.nom} className="w-20 h-20 object-cover rounded-2xl border border-white/10 flex-shrink-0" />
+                            ) : (
+                              <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark flex-shrink-0">
+                                <Wine size={28} className="opacity-30" />
+                              </div>
+                            )}
+                            <div className="flex-1 space-y-1 min-w-0">
+                              <h5 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark group-hover:text-accent-light transition-colors truncate">
+                                {boisson.nom}
+                              </h5>
+                              {boisson.formattedPrice && (
+                                <p className="text-accent-light font-bold text-base">
+                                  {boisson.formattedPrice}
+                                </p>
+                              )}
+                              {boisson.description && (
+                                <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark line-clamp-2">
+                                  {boisson.description}
+                                </p>
+                              )}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : displayRestaurant.boissons.length > 0 ? (
                   <div className="space-y-6 glass-card-premium p-6 sm:p-8 rounded-3xl">
                     <div className="flex items-center gap-3 border-b border-black/10 dark:border-white/10 pb-4">
                       <Wine className="w-7 h-7 text-accent-light" />
@@ -1792,7 +1857,7 @@ export const MenuView: React.FC = () => {
                       ))}
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {displayRestaurant.familles.length === 0 && displayRestaurant.boissons.length === 0 && (
                   <div className="glass-card-premium p-12 text-center text-text-secondary-light dark:text-text-secondary-dark">
