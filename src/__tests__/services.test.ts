@@ -33,7 +33,8 @@ import {
   deleteMenuRepas,
   createMenuBoisson,
   updateMenuBoisson,
-  deleteMenuBoisson
+  deleteMenuBoisson,
+  listCasiers
 } from "../services";
 
 function assertEqual(actual: unknown, expected: unknown, message: string) {
@@ -380,7 +381,13 @@ async function runTests() {
   assertEqual(lastCall.url, "/appro-boisson/appro-200", "deleteApproBoisson url");
   console.log("✓ DELETE /appro-boisson/{appro_id}");
 
-  console.log("All 14 endpoint consumption tests passed successfully!");
+  // Test Casiers Endpoints
+  await listCasiers();
+  assertEqual(lastCall.method, "GET", "listCasiers method");
+  assertEqual(lastCall.url, "/casiers/", "listCasiers url");
+  console.log("✓ GET /casiers/");
+
+  console.log("All endpoint consumption tests passed successfully!");
 }
 
 runTests().catch((err) => {
