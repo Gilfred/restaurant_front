@@ -20,15 +20,18 @@ import {
   getApproBoisson,
   updateApproBoisson,
   deleteApproBoisson,
-  listBoissons
+  listBoissons,
+  listCasiers
 } from "../../../services";
 import type { ApproBoissonResponse, BoissonResponse } from "../../../types/boisson";
+import type { CasierResponse } from "../../../types/casier";
 import { AccessDenied } from "../../../components/AccessDenied";
 import { RestaurantSkeleton } from "../../../components/RestoSkeletons";
 
 export const ApproBoissonView: React.FC = () => {
   const [appros, setAppros] = useState<ApproBoissonResponse[]>([]);
   const [boissons, setBoissons] = useState<BoissonResponse[]>([]);
+  const [casiers, setCasiers] = useState<CasierResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDenied, setIsDenied] = useState(false);
   const [search, setSearch] = useState("");
@@ -57,12 +60,14 @@ export const ApproBoissonView: React.FC = () => {
     try {
       setLoading(true);
       setIsDenied(false);
-      const [approsRes, boissonsRes] = await Promise.all([
+      const [approsRes, boissonsRes, casiersRes] = await Promise.all([
         listApproBoissons(),
-        listBoissons().catch(() => ({ data: [] }))
+        listBoissons().catch(() => ({ data: [] })),
+        listCasiers().catch(() => ({ data: [] }))
       ]);
       setAppros(approsRes.data || []);
       setBoissons(boissonsRes.data || []);
+      setCasiers(casiersRes.data || []);
     } catch (err: any) {
       console.error(err);
       if (err.response?.status === 403 || err.response?.status === 401) {
@@ -86,6 +91,14 @@ export const ApproBoissonView: React.FC = () => {
       return found.nomBoisson;
     }
     return `Boisson (${appro.boissonId})`;
+  };
+
+  const getCasierLabel = (casierIdStr: string) => {
+    const found = casiers.find((c) => c.id === casierIdStr);
+    if (found) {
+      return found.typeCasier;
+    }
+    return casierIdStr;
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -179,9 +192,10 @@ export const ApproBoissonView: React.FC = () => {
   const filtered = appros.filter((a) => {
     const term = search.toLowerCase();
     const bName = getBoissonName(a).toLowerCase();
+    const cLabel = getCasierLabel(a.casierId).toLowerCase();
     const bId = a.boissonId?.toLowerCase() || "";
     const cId = a.casierId?.toLowerCase() || "";
-    return bName.includes(term) || bId.includes(term) || cId.includes(term);
+    return bName.includes(term) || cLabel.includes(term) || bId.includes(term) || cId.includes(term);
   });
 
   if (loading) {
@@ -378,15 +392,31 @@ export const ApproBoissonView: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">ID Casier (UUID)</label>
-                  <input
-                    type="text"
-                    value={casierId}
-                    onChange={(e) => setCasierId(e.target.value)}
-                    required
-                    placeholder="3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-xs font-mono font-semibold"
-                  />
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">Casier</label>
+                  {casiers.length > 0 ? (
+                    <select
+                      value={casierId}
+                      onChange={(e) => setCasierId(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
+                    >
+                      <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">Sélectionner un casier...</option>
+                      {casiers.map((c) => (
+                        <option key={c.id} value={c.id} className="dark:bg-slate-900 font-semibold text-text-primary-light">
+                          {c.typeCasier}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={casierId}
+                      onChange={(e) => setCasierId(e.target.value)}
+                      required
+                      placeholder="3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-xs font-mono font-semibold"
+                    />
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -472,8 +502,15 @@ export const ApproBoissonView: React.FC = () => {
                 </div>
 
                 <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/5 space-y-1">
-                  <span className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest block">ID Casier</span>
-                  <span className="text-xs font-mono font-bold text-text-primary-light dark:text-text-primary-dark block select-all">{selectedAppro.casierId}</span>
+                  <span className="text-[10px] font-bold text-text-secondary-light uppercase tracking-widest block">Casier</span>
+                  <span className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark block">
+                    {getCasierLabel(selectedAppro.casierId)}
+                    {getCasierLabel(selectedAppro.casierId) !== selectedAppro.casierId && (
+                      <span className="text-xs font-mono text-text-secondary-light block mt-0.5 select-all font-normal">
+                        ({selectedAppro.casierId})
+                      </span>
+                    )}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -524,14 +561,31 @@ export const ApproBoissonView: React.FC = () => {
 
               <form onSubmit={handleUpdate} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">ID Casier</label>
-                  <input
-                    type="text"
-                    value={editCasierId}
-                    onChange={(e) => setEditCasierId(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-xs font-mono font-semibold"
-                  />
+                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">Casier</label>
+                  {casiers.length > 0 ? (
+                    <select
+                      value={editCasierId}
+                      onChange={(e) => setEditCasierId(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 bg-white/5 dark:bg-slate-900 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-sm font-semibold"
+                    >
+                      <option value="" disabled className="dark:bg-slate-900 text-text-secondary-light">Sélectionner un casier...</option>
+                      {casiers.map((c) => (
+                        <option key={c.id} value={c.id} className="dark:bg-slate-900 font-semibold text-text-primary-light">
+                          {c.typeCasier}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={editCasierId}
+                      onChange={(e) => setEditCasierId(e.target.value)}
+                      required
+                      placeholder="3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 text-text-primary-light dark:text-text-primary-dark text-xs font-mono font-semibold"
+                    />
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
