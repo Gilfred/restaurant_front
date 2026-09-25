@@ -44,6 +44,7 @@ import {
   updateMenuBoissonFamille,
   deleteMenuBoissonFamille,
   uploadMenuBoissonFamilleImage,
+  listMenuBoissonFamilleImages,
   deleteMenuBoissonImage,
   createMenuBoisson,
   updateMenuBoisson,
@@ -192,7 +193,21 @@ export const MenuView: React.FC = () => {
 
       let fetchedBoissonFamilles: MenuBoissonFamille[] = [];
       if (boissonFamillesRes.status === "fulfilled") {
-        fetchedBoissonFamilles = boissonFamillesRes.value.data || [];
+        const rawBoissonFamilles = boissonFamillesRes.value.data || [];
+        fetchedBoissonFamilles = await Promise.all(
+          rawBoissonFamilles.map(async (fam) => {
+            let famImages = fam.images || (fam as any).familleImages || (fam as any).images_urls || (fam as any).boissonImages || [];
+            try {
+              const imgRes = await listMenuBoissonFamilleImages(fam.id);
+              if (imgRes.data && Array.isArray(imgRes.data) && imgRes.data.length > 0) {
+                famImages = imgRes.data;
+              }
+            } catch (imgErr) {
+              console.warn("Could not fetch images for boisson famille:", fam.id, imgErr);
+            }
+            return { ...fam, images: famImages };
+          })
+        );
       }
       if (categoriesRes.status === "fulfilled") {
         const raw = categoriesRes.value.data;
@@ -1379,16 +1394,24 @@ export const MenuView: React.FC = () => {
           {gestionTab === "boissons" && (
             <div className="space-y-8">
               {boissonFamilles.map((famille) => {
-                const images = famille.images || [];
+                const rawImages = famille.images || (famille as any).familleImages || (famille as any).images_urls || (famille as any).boissonImages || [];
+                const images = (Array.isArray(rawImages) ? rawImages : [])
+                  .map((img: any, idx: number) => ({
+                    id: String(img?.id || img?.public_id || `bimg-${famille.id}-${idx}`),
+                    url: String(img?.url || img?.imageUrl || img?.image_url || img?.src || ""),
+                    public_id: img?.public_id
+                  }))
+                  .filter((img) => Boolean(img.url));
+
                 const maxImagesReached = images.length >= 3;
 
                 // Find drinks associated with this beverage family
-                const associatedBoissons = menuBoissonItems.filter((item) => {
-                  return (
-                    String((item as any).menuBoissonFamilleId || (item as any).familleId || "") === String(famille.id) ||
-                    String((item as any).menu_boisson_famille_id || "") === String(famille.id)
-                  );
+                const itemsFromState = menuBoissonItems.filter((item) => {
+                  const famId = String((item as any).menuBoissonFamilleId || (item as any).familleId || (item as any).menu_boisson_famille_id || (item as any).menuBoissonFamille?.id || "");
+                  return famId === String(famille.id);
                 });
+                const itemsFromFamille = famille.boissons || (famille as any).boissonList || [];
+                const associatedBoissons = itemsFromState.length > 0 ? itemsFromState : itemsFromFamille;
 
                 return (
                   <div key={famille.id} className="glass-card-premium p-6 sm:p-8 space-y-6">
@@ -1459,16 +1482,33 @@ export const MenuView: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Images of Beverage Family (Max 3) */}
+                    {/* Images of Beverage Family (Max 3, dynamic space allocation) */}
                     <div className="space-y-2">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-text-secondary-light dark:text-text-secondary-dark">
                         Images de la famille ({images.length}/3)
                       </h4>
                       {images.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <div
+                          className={`grid gap-4 w-full ${
+                            images.length === 1
+                              ? "grid-cols-1"
+                              : images.length === 2
+                              ? "grid-cols-1 sm:grid-cols-2"
+                              : "grid-cols-1 sm:grid-cols-3"
+                          }`}
+                        >
                           {images.map((img) => (
-                            <div key={img.id} className="h-36 rounded-2xl overflow-hidden relative group border border-white/10 bg-black/20">
-                              <img src={img.url || (img as any).imageUrl} alt={famille.nom} className="w-full h-full object-cover" />
+                            <div
+                              key={img.id}
+                              className={`${
+                                images.length === 1
+                                  ? "h-56 sm:h-64"
+                                  : images.length === 2
+                                  ? "h-48 sm:h-56"
+                                  : "h-40 sm:h-48"
+                              } rounded-2xl overflow-hidden relative group border border-white/10 bg-black/20 w-full`}
+                            >
+                              <img src={img.url} alt={famille.nom} className="w-full h-full object-cover" />
                               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <button
                                   onClick={() => handleDeleteBoissonFamilleImage(img.id)}
@@ -1709,8 +1749,73 @@ export const MenuView: React.FC = () => {
                   </div>
                 ))}
 
-                {/* Boissons Section */}
-                {displayRestaurant.boissons.length > 0 && (
+                {/* Boissons Section (Structured Families vs Flat fallback) */}
+                {displayRestaurant.boissonFamilles && displayRestaurant.boissonFamilles.length > 0 ? (
+                  displayRestaurant.boissonFamilles.map((bfam) => (
+                    <div key={bfam.id} className="space-y-6 glass-card-premium p-6 sm:p-8 rounded-3xl">
+                      <div className="flex items-center gap-3 border-b border-black/10 dark:border-white/10 pb-4">
+                        <Wine className="w-7 h-7 text-accent-light" />
+                        <h3 className="text-3xl font-extrabold text-text-primary-light dark:text-text-primary-dark tracking-tight">
+                          {bfam.nom}
+                        </h3>
+                      </div>
+
+                      {/* Images de la famille de boissons */}
+                      {bfam.images && bfam.images.length > 0 && (
+                        <div className={`grid gap-4 my-4 ${
+                          bfam.images.length === 1 ? 'grid-cols-1' :
+                          bfam.images.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
+                          'grid-cols-1 sm:grid-cols-3'
+                        }`}>
+                          {bfam.images.map((img) => (
+                            <div key={img.id} className={`${
+                              bfam.images.length === 1 ? 'h-56 sm:h-64' :
+                              bfam.images.length === 2 ? 'h-48 sm:h-56' :
+                              'h-40 sm:h-48'
+                            } rounded-2xl overflow-hidden bg-slate-900 border border-white/10 shadow-md`}>
+                              <img src={img.imageUrl} alt={bfam.nom} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Liste des boissons */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {bfam.boissons.map((boisson) => (
+                          <motion.div
+                            key={boisson.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="glass-card-premium p-6 hover:bg-white/50 dark:hover:bg-slate-800/60 transition-colors group flex items-center gap-4"
+                          >
+                            {boisson.imageUrl ? (
+                              <img src={boisson.imageUrl} alt={boisson.nom} className="w-20 h-20 object-cover rounded-2xl border border-white/10 flex-shrink-0" />
+                            ) : (
+                              <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark flex-shrink-0">
+                                <Wine size={28} className="opacity-30" />
+                              </div>
+                            )}
+                            <div className="flex-1 space-y-1 min-w-0">
+                              <h5 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark group-hover:text-accent-light transition-colors truncate">
+                                {boisson.nom}
+                              </h5>
+                              {boisson.formattedPrice && (
+                                <p className="text-accent-light font-bold text-base">
+                                  {boisson.formattedPrice}
+                                </p>
+                              )}
+                              {boisson.description && (
+                                <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark line-clamp-2">
+                                  {boisson.description}
+                                </p>
+                              )}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : displayRestaurant.boissons.length > 0 ? (
                   <div className="space-y-6 glass-card-premium p-6 sm:p-8 rounded-3xl">
                     <div className="flex items-center gap-3 border-b border-black/10 dark:border-white/10 pb-4">
                       <Wine className="w-7 h-7 text-accent-light" />
@@ -1752,7 +1857,7 @@ export const MenuView: React.FC = () => {
                       ))}
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {displayRestaurant.familles.length === 0 && displayRestaurant.boissons.length === 0 && (
                   <div className="glass-card-premium p-12 text-center text-text-secondary-light dark:text-text-secondary-dark">
@@ -2452,19 +2557,6 @@ export const MenuView: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-text-primary-light dark:text-text-primary-dark uppercase tracking-wider ml-1">
-                    Ordre d'affichage
-                  </label>
-                  <input
-                    type="number"
-                    value={boissonOrdre}
-                    onChange={(e) => setBoissonOrdre(parseInt(e.target.value) || 0)}
-                    placeholder="0"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light transition-all text-text-primary-light dark:text-text-primary-dark text-sm"
-                  />
                 </div>
 
                 <div className="flex gap-4 pt-4">

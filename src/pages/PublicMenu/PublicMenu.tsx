@@ -118,15 +118,39 @@ export const parseRestaurantDisplayData = (item: any): RestaurantDisplay => {
   const boissonFamilleList: any[] = [];
 
   if (item.boissons && Array.isArray(item.boissons)) {
+    const extractImageUrl = (...objs: any[]): string | null => {
+      for (const obj of objs) {
+        if (!obj) continue;
+        const url = obj.imageUrl || obj.image_url || obj.url || obj.image || obj.src;
+        if (url && typeof url === 'string' && url.trim() !== '') {
+          return url.trim();
+        }
+      }
+      return null;
+    };
+
+    const extractPrice = (...objs: any[]): number | null => {
+      for (const obj of objs) {
+        if (!obj) continue;
+        const val = obj.prixVente ?? obj.prix_vente ?? obj.prix ?? obj.price;
+        if (val !== undefined && val !== null && val !== '') {
+          const num = Number(val);
+          if (!isNaN(num)) return num;
+        }
+      }
+      return null;
+    };
+
     item.boissons.forEach((bItem: any) => {
       // Check if bItem is a beverage family grouping (contains nested boissons array)
       const subBoissons = bItem.boissons || bItem.boissonList || bItem.items;
       if (subBoissons && Array.isArray(subBoissons)) {
         const famNom = bItem.famille?.nom || bItem.nom || 'Nos Boissons';
-        const famImages = (bItem.images || []).map((img: any) => ({
-          id: String(img.id || `img-${Math.random()}`),
-          imageUrl: String(img.url || img.imageUrl || ''),
-          ordre: img.ordre ?? 0
+        const rawFamImgs = bItem.images || bItem.familleImages || bItem.boissonImages || bItem.images_urls || bItem.famille?.images || [];
+        const famImages = (Array.isArray(rawFamImgs) ? rawFamImgs : []).map((img: any) => ({
+          id: String(img?.id || img?.public_id || `img-${Math.random()}`),
+          imageUrl: String(img?.url || img?.imageUrl || img?.image_url || img?.src || ''),
+          ordre: img?.ordre ?? 0
         })).filter((img: any) => Boolean(img.imageUrl));
 
         const subList: BoissonDisplay[] = [];
@@ -134,9 +158,7 @@ export const parseRestaurantDisplayData = (item: any): RestaurantDisplay => {
           const boissonData = subItem.boisson || subItem;
           const nomBoisson = boissonData.nomBoisson || boissonData.nom || subItem.nomBoisson || subItem.nom || '';
           if (nomBoisson) {
-            const rawPrix = (boissonData.prix !== undefined && boissonData.prix !== null)
-              ? Number(boissonData.prix)
-              : (subItem.prix !== undefined && subItem.prix !== null) ? Number(subItem.prix) : null;
+            const rawPrix = extractPrice(boissonData, subItem, bItem);
 
             const bDisplay: BoissonDisplay = {
               id: String(subItem.id || boissonData.id || `boisson-${Math.random()}`),
@@ -144,7 +166,7 @@ export const parseRestaurantDisplayData = (item: any): RestaurantDisplay => {
               description: boissonData.description || undefined,
               prix: rawPrix,
               formattedPrice: rawPrix !== null ? `${rawPrix.toLocaleString()} F CFA` : '',
-              imageUrl: subItem.imageUrl || boissonData.imageUrl || null
+              imageUrl: extractImageUrl(subItem, boissonData)
             };
             subList.push(bDisplay);
             boissonList.push(bDisplay);
@@ -163,9 +185,7 @@ export const parseRestaurantDisplayData = (item: any): RestaurantDisplay => {
         const boissonData = bItem.boisson || bItem;
         const nomBoisson = boissonData.nomBoisson || boissonData.nom || bItem.nomBoisson || bItem.nom || '';
         if (nomBoisson) {
-          const rawPrix = (boissonData.prix !== undefined && boissonData.prix !== null)
-            ? Number(boissonData.prix)
-            : (bItem.prix !== undefined && bItem.prix !== null) ? Number(bItem.prix) : null;
+          const rawPrix = extractPrice(boissonData, bItem);
 
           boissonList.push({
             id: String(bItem.id || boissonData.id || `boisson-${Math.random()}`),
@@ -173,7 +193,7 @@ export const parseRestaurantDisplayData = (item: any): RestaurantDisplay => {
             description: boissonData.description || undefined,
             prix: rawPrix,
             formattedPrice: rawPrix !== null ? `${rawPrix.toLocaleString()} F CFA` : '',
-            imageUrl: bItem.imageUrl || boissonData.imageUrl || null
+            imageUrl: extractImageUrl(bItem, boissonData)
           });
         }
       }
@@ -513,9 +533,17 @@ export const PublicMenu: React.FC = () => {
 
                         {/* Images de la famille de boissons */}
                         {bfam.images && bfam.images.length > 0 && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 my-4">
+                          <div className={`grid gap-4 my-4 ${
+                            bfam.images.length === 1 ? 'grid-cols-1' :
+                            bfam.images.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
+                            'grid-cols-1 sm:grid-cols-3'
+                          }`}>
                             {bfam.images.map((img) => (
-                              <div key={img.id} className="h-48 sm:h-56 rounded-2xl overflow-hidden bg-slate-900 border border-white/10 shadow-md">
+                              <div key={img.id} className={`${
+                                bfam.images.length === 1 ? 'h-56 sm:h-64' :
+                                bfam.images.length === 2 ? 'h-48 sm:h-56' :
+                                'h-40 sm:h-48'
+                              } rounded-2xl overflow-hidden bg-slate-900 border border-white/10 shadow-md`}>
                                 <img src={img.imageUrl} alt={bfam.nom} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                               </div>
                             ))}
