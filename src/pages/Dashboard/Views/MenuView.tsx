@@ -44,6 +44,7 @@ import {
   updateMenuBoissonFamille,
   deleteMenuBoissonFamille,
   uploadMenuBoissonFamilleImage,
+  listMenuBoissonFamilleImages,
   deleteMenuBoissonImage,
   createMenuBoisson,
   updateMenuBoisson,
@@ -192,7 +193,21 @@ export const MenuView: React.FC = () => {
 
       let fetchedBoissonFamilles: MenuBoissonFamille[] = [];
       if (boissonFamillesRes.status === "fulfilled") {
-        fetchedBoissonFamilles = boissonFamillesRes.value.data || [];
+        const rawBoissonFamilles = boissonFamillesRes.value.data || [];
+        fetchedBoissonFamilles = await Promise.all(
+          rawBoissonFamilles.map(async (fam) => {
+            let famImages = fam.images || (fam as any).familleImages || (fam as any).images_urls || (fam as any).boissonImages || [];
+            try {
+              const imgRes = await listMenuBoissonFamilleImages(fam.id);
+              if (imgRes.data && Array.isArray(imgRes.data) && imgRes.data.length > 0) {
+                famImages = imgRes.data;
+              }
+            } catch (imgErr) {
+              console.warn("Could not fetch images for boisson famille:", fam.id, imgErr);
+            }
+            return { ...fam, images: famImages };
+          })
+        );
       }
       if (categoriesRes.status === "fulfilled") {
         const raw = categoriesRes.value.data;

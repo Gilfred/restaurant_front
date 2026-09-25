@@ -118,28 +118,40 @@ export const parseRestaurantDisplayData = (item: any): RestaurantDisplay => {
   const boissonFamilleList: any[] = [];
 
   if (item.boissons && Array.isArray(item.boissons)) {
+    const extractImageUrl = (...objs: any[]): string | null => {
+      for (const obj of objs) {
+        if (!obj) continue;
+        const url = obj.imageUrl || obj.image_url || obj.url || obj.image || obj.src;
+        if (url && typeof url === 'string' && url.trim() !== '') {
+          return url.trim();
+        }
+      }
+      return null;
+    };
+
+    const extractPrice = (...objs: any[]): number | null => {
+      for (const obj of objs) {
+        if (!obj) continue;
+        const val = obj.prixVente ?? obj.prix_vente ?? obj.prix ?? obj.price;
+        if (val !== undefined && val !== null && val !== '') {
+          const num = Number(val);
+          if (!isNaN(num)) return num;
+        }
+      }
+      return null;
+    };
+
     item.boissons.forEach((bItem: any) => {
       // Check if bItem is a beverage family grouping (contains nested boissons array)
       const subBoissons = bItem.boissons || bItem.boissonList || bItem.items;
       if (subBoissons && Array.isArray(subBoissons)) {
         const famNom = bItem.famille?.nom || bItem.nom || 'Nos Boissons';
-        const famImages = (bItem.images || []).map((img: any) => ({
-          id: String(img.id || `img-${Math.random()}`),
-          imageUrl: String(img.url || img.imageUrl || ''),
-          ordre: img.ordre ?? 0
+        const rawFamImgs = bItem.images || bItem.familleImages || bItem.boissonImages || bItem.images_urls || bItem.famille?.images || [];
+        const famImages = (Array.isArray(rawFamImgs) ? rawFamImgs : []).map((img: any) => ({
+          id: String(img?.id || img?.public_id || `img-${Math.random()}`),
+          imageUrl: String(img?.url || img?.imageUrl || img?.image_url || img?.src || ''),
+          ordre: img?.ordre ?? 0
         })).filter((img: any) => Boolean(img.imageUrl));
-
-        const extractPrice = (...objs: any[]): number | null => {
-          for (const obj of objs) {
-            if (!obj) continue;
-            const val = obj.prixVente ?? obj.prix_vente ?? obj.prix ?? obj.price;
-            if (val !== undefined && val !== null && val !== '') {
-              const num = Number(val);
-              if (!isNaN(num)) return num;
-            }
-          }
-          return null;
-        };
 
         const subList: BoissonDisplay[] = [];
         subBoissons.forEach((subItem: any) => {
@@ -154,7 +166,7 @@ export const parseRestaurantDisplayData = (item: any): RestaurantDisplay => {
               description: boissonData.description || undefined,
               prix: rawPrix,
               formattedPrice: rawPrix !== null ? `${rawPrix.toLocaleString()} F CFA` : '',
-              imageUrl: subItem.imageUrl || boissonData.imageUrl || null
+              imageUrl: extractImageUrl(subItem, boissonData)
             };
             subList.push(bDisplay);
             boissonList.push(bDisplay);
@@ -173,14 +185,7 @@ export const parseRestaurantDisplayData = (item: any): RestaurantDisplay => {
         const boissonData = bItem.boisson || bItem;
         const nomBoisson = boissonData.nomBoisson || boissonData.nom || bItem.nomBoisson || bItem.nom || '';
         if (nomBoisson) {
-          const rawPrix = ((): number | null => {
-            const val = boissonData.prixVente ?? boissonData.prix_vente ?? boissonData.prix ?? boissonData.price ?? bItem.prixVente ?? bItem.prix_vente ?? bItem.prix ?? bItem.price;
-            if (val !== undefined && val !== null && val !== '') {
-              const num = Number(val);
-              if (!isNaN(num)) return num;
-            }
-            return null;
-          })();
+          const rawPrix = extractPrice(boissonData, bItem);
 
           boissonList.push({
             id: String(bItem.id || boissonData.id || `boisson-${Math.random()}`),
@@ -188,7 +193,7 @@ export const parseRestaurantDisplayData = (item: any): RestaurantDisplay => {
             description: boissonData.description || undefined,
             prix: rawPrix,
             formattedPrice: rawPrix !== null ? `${rawPrix.toLocaleString()} F CFA` : '',
-            imageUrl: bItem.imageUrl || boissonData.imageUrl || null
+            imageUrl: extractImageUrl(bItem, boissonData)
           });
         }
       }
