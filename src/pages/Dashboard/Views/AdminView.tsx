@@ -39,7 +39,7 @@ export const AdminView: React.FC = () => {
       setActivationHistory(historyRes.data);
     } catch (err: any) {
       console.error(err);
-      if (err.response?.status === 403 || err.response?.status === 401) {
+      if (err.response?.status === 403) {
         setIsDenied(true);
       }
     } finally {

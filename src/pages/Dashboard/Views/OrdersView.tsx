@@ -278,7 +278,7 @@ export const OrdersView: React.FC = () => {
           setWaiters(waiterRes.data || []);
         } catch (err: any) {
           // If GET /commandes/ fails with 403 (e.g. user is a serveuse with no admin/resto-wide access), fallback automatically to GET /commandes/me
-          if (err.response?.status === 403 || err.response?.status === 401) {
+          if (err.response?.status === 403) {
             try {
               const [myCmdRes, waiterRes] = await Promise.all([
                 listMyCommandes(),
@@ -288,7 +288,7 @@ export const OrdersView: React.FC = () => {
               setWaiters(waiterRes.data || []);
               setActiveTab("me");
             } catch (fallbackErr: any) {
-              if (fallbackErr.response?.status === 403 || fallbackErr.response?.status === 401) {
+              if (fallbackErr.response?.status === 403) {
                 setIsDenied(true);
               }
             }
@@ -305,7 +305,7 @@ export const OrdersView: React.FC = () => {
           setCommandes(myCmdRes.data || []);
           setWaiters(waiterRes.data || []);
         } catch (err: any) {
-          if (err.response?.status === 403 || err.response?.status === 401) {
+          if (err.response?.status === 403) {
             setIsDenied(true);
           } else {
             setError("Impossible de charger vos commandes.");

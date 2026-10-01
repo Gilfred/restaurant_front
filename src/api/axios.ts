@@ -1,4 +1,5 @@
 import axios from "axios";
+import { isTokenExpired } from "../utils/jwt";
 
 export const API_URL = import.meta.env?.VITE_API_URL || "http://127.0.0.1:8000";
 
@@ -10,13 +11,54 @@ export const api = axios.create({
   },
 });
 
+/**
+ * Checks if an endpoint URL is genuinely public.
+ * Enforces exact matching to avoid treating protected endpoints like
+ * `/restaurants/staff` or `/restaurants/inactive` as public.
+ */
+export function isPublicEndpoint(url: string, method: string = "GET"): boolean {
+  if (!url) return false;
+  let path = url;
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    try {
+      path = new URL(path).pathname;
+    } catch {
+      // ignore invalid URL
+    }
+  }
+  path = path.split("?")[0];
+
+  const exactPublicPaths = [
+    "/auth/login",
+    "/auth/signup",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+    "/menus/display",
+  ];
+
+  if (exactPublicPaths.includes(path)) {
+    return true;
+  }
+
+  // Exact /restaurants or /restaurants/ on GET is public for the explore page
+  if ((path === "/restaurants" || path === "/restaurants/") && method.toUpperCase() === "GET") {
+    return true;
+  }
+
+  return false;
+}
+
 // Intercepteur de requête pour ajouter le token Authorization Bearer
 api.interceptors.request.use(
   (config) => {
     if (typeof localStorage !== "undefined") {
       const token = localStorage.getItem("access_token");
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        if (isTokenExpired(token) && !isPublicEndpoint(config.url || "", config.method)) {
+          localStorage.removeItem("access_token");
+        } else {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
     }
     return config;
@@ -28,26 +70,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Ne nettoyer le token et rediriger vers /login sur 401 Unauthorized
-    // QUE SI la requête n'était PAS sur une route/endpoint public ou lors de l'initialisation passive du menu
+    // Si 401 Unauthorized sur une requête/endpoint protégé
     if (error.response?.status === 401) {
       const configUrl = error.config?.url || "";
-      const isPublicEndpoint = configUrl.includes("/menus/display") || configUrl.includes("/restaurants");
-      const isPublicPage =
-        typeof window !== "undefined" &&
-        (window.location.pathname.startsWith("/login") ||
-          window.location.pathname.startsWith("/register") ||
-          window.location.pathname.startsWith("/forgot-password") ||
-          window.location.pathname.startsWith("/reset-password") ||
-          window.location.pathname.startsWith("/auth/callback") ||
-          window.location.pathname.startsWith("/explore"));
+      const method = error.config?.method || "GET";
 
-      if (!isPublicEndpoint && !isPublicPage) {
+      if (!isPublicEndpoint(configUrl, method)) {
         if (typeof localStorage !== "undefined") {
           localStorage.removeItem("access_token");
         }
-        console.warn("Session expirée sur route protégée. Redirection vers la page de connexion...");
-        if (typeof window !== "undefined") {
+        console.warn("Session expirée sur route protégée (401). Redirection vers /login...");
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
           window.location.href = "/login";
         }
       }
