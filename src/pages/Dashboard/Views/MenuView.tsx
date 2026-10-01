@@ -1538,7 +1538,7 @@ export const MenuView: React.FC = () => {
 
                       {associatedBoissons.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                          {associatedBoissons.map((item) => {
+                          {associatedBoissons.map((item: any) => {
                             const matchedBoisson = allRestaurantBoissons.find((b) => b.id === item.boissonId);
                             const displayName = String((item as any).nomBoisson || (item as any).nom || matchedBoisson?.nomBoisson || item.boissonId);
                             const displayPrice = (item as any).prix || matchedBoisson?.prix;
@@ -1716,7 +1716,7 @@ export const MenuView: React.FC = () => {
                             {cat.nom}
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {cat.repasList.map((repas) => (
+                            {cat.repasList.map((repas: any) => (
                               <motion.div
                                 key={repas.id}
                                 initial={{ opacity: 0, scale: 0.95 }}
