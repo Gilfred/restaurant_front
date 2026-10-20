@@ -11,11 +11,22 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
-import { getDashboardOverview, listCommandes, listMyCommandes } from '../../../services';
-import type { DashboardOverviewResponse, OverviewPeriod, OverviewMetric } from '../../../types/dashboard';
+import {
+  getDashboardOverview,
+  getDashboardSales,
+  listCommandes,
+  listMyCommandes
+} from '../../../services';
+import type {
+  DashboardOverviewResponse,
+  DashboardSalesResponse,
+  OverviewPeriod,
+  OverviewMetric
+} from '../../../types/dashboard';
 import type { CommandeResponse } from '../../../types/commande';
 import { AccessDenied } from '../../../components/AccessDenied';
 import { OrdersTable } from '../../../components/OrdersTable';
+import { SalesOverview } from '../../../components/SalesOverview';
 import { cn } from '../../../utils/cn';
 
 interface OverviewViewProps {
@@ -139,22 +150,35 @@ const OverviewCard: React.FC<OverviewCardProps> = ({
 
 export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) => {
   const [period, setPeriod] = useState<OverviewPeriod>('7d');
+
   const [overviewData, setOverviewData] = useState<DashboardOverviewResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loadingOverview, setLoadingOverview] = useState<boolean>(true);
+
+  const [salesData, setSalesData] = useState<DashboardSalesResponse | null>(null);
+  const [loadingSales, setLoadingSales] = useState<boolean>(true);
+
   const [error, setError] = useState<string | null>(null);
   const [isDenied, setIsDenied] = useState<boolean>(false);
 
   const [recentOrders, setRecentOrders] = useState<CommandeResponse[]>([]);
   const [loadingOrders, setLoadingOrders] = useState<boolean>(true);
 
-  const fetchOverview = async (selectedPeriod: OverviewPeriod) => {
-    setLoading(true);
+  const fetchDashboardData = async (selectedPeriod: OverviewPeriod) => {
+    setLoadingOverview(true);
+    setLoadingSales(true);
     setError(null);
     setIsDenied(false);
 
     try {
-      const res = await getDashboardOverview(selectedPeriod);
-      setOverviewData(res.data);
+      const [overviewRes, salesRes] = await Promise.all([
+        getDashboardOverview(selectedPeriod),
+        getDashboardSales(selectedPeriod).catch(() => ({ data: null }))
+      ]);
+
+      setOverviewData(overviewRes.data);
+      if (salesRes.data) {
+        setSalesData(salesRes.data);
+      }
     } catch (err: any) {
       if (err.response?.status === 403) {
         setIsDenied(true);
@@ -166,7 +190,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
         );
       }
     } finally {
-      setLoading(false);
+      setLoadingOverview(false);
+      setLoadingSales(false);
     }
   };
 
@@ -177,7 +202,6 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
       setRecentOrders((res.data || []).slice(0, 5));
     } catch (err: any) {
       if (err.response?.status === 403) {
-        // Fallback for non-admin waiters if needed
         try {
           const myRes = await listMyCommandes();
           setRecentOrders((myRes.data || []).slice(0, 5));
@@ -193,7 +217,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
   };
 
   useEffect(() => {
-    fetchOverview(period);
+    fetchDashboardData(period);
   }, [period]);
 
   useEffect(() => {
@@ -237,7 +261,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
             <button
               key={opt.id}
               onClick={() => setPeriod(opt.id)}
-              disabled={loading}
+              disabled={loadingOverview}
               className={cn(
                 'px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer disabled:opacity-50',
                 period === opt.id
@@ -258,7 +282,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
             <span>{error}</span>
           </div>
           <button
-            onClick={() => fetchOverview(period)}
+            onClick={() => fetchDashboardData(period)}
             className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 rounded-xl text-xs font-bold transition-colors flex items-center gap-1"
           >
             <RefreshCw size={12} /> Réessayer
@@ -267,7 +291,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
       )}
 
       {/* Overview Cards Grid */}
-      {loading && !overviewData ? (
+      {loadingOverview && !overviewData ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="glass-card-premium p-6 h-44 animate-pulse flex flex-col justify-between">
@@ -317,6 +341,15 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
           </motion.div>
         </div>
       ) : null}
+
+      {/* Sales Evolution Chart Row */}
+      <motion.div variants={itemVariants}>
+        <SalesOverview
+          data={salesData?.data}
+          currency={salesData?.currency || overviewData?.currency}
+          loading={loadingSales}
+        />
+      </motion.div>
 
       {/* Limitations Note Banner */}
       {overviewData?.limitations_note && (

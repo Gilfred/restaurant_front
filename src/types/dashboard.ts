@@ -20,3 +20,16 @@ export interface DashboardOverviewResponse {
   total_orders_received: OverviewMetric;
   limitations_note?: string;
 }
+
+export interface DashboardSalesPoint {
+  date: string;
+  revenue: number;
+  orders_count: number;
+  total_orders_received: number;
+}
+
+export interface DashboardSalesResponse {
+  period: OverviewPeriod;
+  currency: string;
+  data: DashboardSalesPoint[];
+}
