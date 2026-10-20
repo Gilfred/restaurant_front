@@ -1,9 +1,7 @@
-export type Status = 'En attente' | 'En préparation' | 'Servie' | 'Terminée' | 'Annulée';
+import type { CommandeResponse } from '../../types/commande';
 
-export interface Order {
-  id: string;
-  client: string;
-  amount: string;
-  status: Status;
-  date: string;
+export interface OrdersTableProps {
+  commandes?: CommandeResponse[];
+  loading?: boolean;
+  onSeeAll?: () => void;
 }

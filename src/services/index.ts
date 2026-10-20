@@ -6,3 +6,4 @@ export * from "./boisson.service";
 export * from "./repas.service";
 export * from "./menu.service";
 export * from "./casier.service";
+export * from "./dashboard.service";
