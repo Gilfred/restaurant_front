@@ -14,12 +14,14 @@ import {
 import {
   getDashboardOverview,
   getDashboardSales,
+  getWeeklySales,
   listCommandes,
   listMyCommandes
 } from '../../../services';
 import type {
   DashboardOverviewResponse,
   DashboardSalesResponse,
+  WeeklySalesResponse,
   OverviewPeriod,
   OverviewMetric
 } from '../../../types/dashboard';
@@ -35,6 +37,7 @@ interface OverviewViewProps {
 
 const PERIOD_OPTIONS: { id: OverviewPeriod; label: string }[] = [
   { id: 'today', label: "Aujourd'hui" },
+  { id: 'weekly', label: 'Semaine courante (Hebdo)' },
   { id: '7d', label: '7 derniers jours' },
   { id: '30d', label: '30 derniers jours' },
   { id: 'current_month', label: 'Mois en cours' },
@@ -154,7 +157,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
   const [overviewData, setOverviewData] = useState<DashboardOverviewResponse | null>(null);
   const [loadingOverview, setLoadingOverview] = useState<boolean>(true);
 
-  const [salesData, setSalesData] = useState<DashboardSalesResponse | null>(null);
+  const [salesData, setSalesData] = useState<DashboardSalesResponse | WeeklySalesResponse | null>(null);
   const [loadingSales, setLoadingSales] = useState<boolean>(true);
 
   const [error, setError] = useState<string | null>(null);
@@ -170,9 +173,12 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
     setIsDenied(false);
 
     try {
+      const isWeekly = selectedPeriod === 'weekly';
+      const overviewPeriodParam = isWeekly ? '7d' : selectedPeriod;
+
       const [overviewRes, salesRes] = await Promise.all([
-        getDashboardOverview(selectedPeriod),
-        getDashboardSales(selectedPeriod).catch(() => ({ data: null }))
+        getDashboardOverview(overviewPeriodParam),
+        (isWeekly ? getWeeklySales() : getDashboardSales(selectedPeriod)).catch(() => ({ data: null }))
       ]);
 
       setOverviewData(overviewRes.data);
