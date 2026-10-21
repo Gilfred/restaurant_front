@@ -2,10 +2,13 @@ import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { SalesOverviewProps } from './SalesOverview.types';
 
-const formatDateLabel = (dateStr: string) => {
-  if (!dateStr) return '';
+const formatDateLabel = (point: { date: string; day?: string }) => {
+  if (point.day) {
+    return point.day;
+  }
+  if (!point.date) return '';
   try {
-    const parts = dateStr.split('-');
+    const parts = point.date.split('-');
     if (parts.length === 3) {
       const year = parseInt(parts[0], 10);
       const month = parseInt(parts[1], 10) - 1;
@@ -13,10 +16,10 @@ const formatDateLabel = (dateStr: string) => {
       const d = new Date(year, month, day);
       return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
     }
-    const d = new Date(dateStr);
+    const d = new Date(point.date);
     return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   } catch {
-    return dateStr;
+    return point.date;
   }
 };
 
@@ -29,7 +32,7 @@ export const SalesOverview: React.FC<SalesOverviewProps> = ({
 
   const chartData = data.map((point) => ({
     ...point,
-    label: formatDateLabel(point.date),
+    label: formatDateLabel(point),
   }));
 
   return (

@@ -34,7 +34,10 @@ import {
   createMenuBoisson,
   updateMenuBoisson,
   deleteMenuBoisson,
-  listCasiers
+  listCasiers,
+  getWeeklySales,
+  getDashboardOverview,
+  getDashboardSales
 } from "../services";
 
 function assertEqual(actual: unknown, expected: unknown, message: string) {
@@ -386,6 +389,22 @@ async function runTests() {
   assertEqual(lastCall.method, "GET", "listCasiers method");
   assertEqual(lastCall.url, "/casiers/", "listCasiers url");
   console.log("✓ GET /casiers/");
+
+  // Test Dashboard Endpoints
+  await getDashboardOverview("7d");
+  assertEqual(lastCall.method, "GET", "getDashboardOverview method");
+  assertEqual(lastCall.url, "/dashboard/overview", "getDashboardOverview url");
+  console.log("✓ GET /dashboard/overview");
+
+  await getDashboardSales("7d");
+  assertEqual(lastCall.method, "GET", "getDashboardSales method");
+  assertEqual(lastCall.url, "/dashboard/sales", "getDashboardSales url");
+  console.log("✓ GET /dashboard/sales");
+
+  await getWeeklySales();
+  assertEqual(lastCall.method, "GET", "getWeeklySales method");
+  assertEqual(lastCall.url, "/dashboard/sales/weekly", "getWeeklySales url");
+  console.log("✓ GET /dashboard/sales/weekly");
 
   console.log("All endpoint consumption tests passed successfully!");
 }
