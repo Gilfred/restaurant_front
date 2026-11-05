@@ -1,7 +1,7 @@
-import type { DashboardSalesPoint } from '../../types/dashboard';
+import type { DashboardSalesPoint, WeeklySalesPoint } from '../../types/dashboard';
 
 export interface SalesOverviewProps {
-  data?: DashboardSalesPoint[];
+  data?: (DashboardSalesPoint | WeeklySalesPoint)[];
   currency?: string;
   loading?: boolean;
 }

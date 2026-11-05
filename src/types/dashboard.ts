@@ -1,5 +1,6 @@
 export type OverviewPeriod =
   | 'today'
+  | 'weekly'
   | '7d'
   | '30d'
   | 'current_month'
@@ -32,4 +33,20 @@ export interface DashboardSalesResponse {
   period: OverviewPeriod;
   currency: string;
   data: DashboardSalesPoint[];
+}
+
+export interface WeeklySalesPoint {
+  date: string;
+  day: string;
+  revenue: number;
+  orders_count: number;
+  total_orders_received: number;
+}
+
+export interface WeeklySalesResponse {
+  period: 'weekly' | string;
+  currency: string;
+  start_date: string;
+  end_date: string;
+  data: WeeklySalesPoint[];
 }
