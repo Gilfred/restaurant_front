@@ -3,11 +3,10 @@ import React, {
   useContext,
   useEffect,
   useState,
-  useRef,
   useCallback,
 } from "react";
 import { getCurrentUser, logout } from "../services/auth.service";
-import { isTokenExpired, getTokenTimeRemaining } from "../utils/jwt";
+import { onAuthExpired } from "../api/axios";
 
 export interface Role {
   id: string;
@@ -37,47 +36,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const expirationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const clearExpirationTimer = useCallback(() => {
-    if (expirationTimerRef.current) {
-      clearTimeout(expirationTimerRef.current);
-      expirationTimerRef.current = null;
-    }
+  // Écouter les événements d'invalidation de session émis par l'intercepteur Axios
+  useEffect(() => {
+    const unsubscribe = onAuthExpired(() => {
+      setUser(null);
+    });
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  const handleSessionExpired = useCallback(() => {
-    clearExpirationTimer();
-    if (typeof localStorage !== "undefined") {
-      localStorage.removeItem("access_token");
-    }
-    setUser(null);
-    console.warn("Session expirée (timer). Redirection vers /login...");
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-      window.location.href = "/login";
-    }
-  }, [clearExpirationTimer]);
-
-  const scheduleExpirationTimer = useCallback(
-    (token: string) => {
-      clearExpirationTimer();
-      const timeRemaining = getTokenTimeRemaining(token);
-      if (timeRemaining <= 0) {
-        handleSessionExpired();
-        return;
-      }
-
-      // Maximise le délai à 2^31 - 1 (environ 24.8 jours) pour éviter l'overflow JS
-      const safeTimeRemaining = Math.min(timeRemaining, 2147483647);
-      expirationTimerRef.current = setTimeout(() => {
-        handleSessionExpired();
-      }, safeTimeRemaining);
-    },
-    [clearExpirationTimer, handleSessionExpired]
-  );
-
   const logoutUser = useCallback(async () => {
-    clearExpirationTimer();
     try {
       await logout();
     } catch (error) {
@@ -88,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       setUser(null);
     }
-  }, [clearExpirationTimer]);
+  }, []);
 
   const refreshUser = useCallback(async () => {
     if (typeof localStorage === "undefined") {
@@ -99,26 +69,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const token = localStorage.getItem("access_token");
     if (!token) {
-      clearExpirationTimer();
       setUser(null);
       setLoading(false);
       return;
     }
 
-    if (isTokenExpired(token)) {
-      handleSessionExpired();
-      setLoading(false);
-      return;
-    }
-
     try {
+      // Si le token a plus de 10 min, l'appel à getCurrentUser (/auth/me)
+      // renverra 401 et l'intercepteur Axios tentera automatiquement un refresh
+      // et rejouera la requête /auth/me sans déconnecter l'utilisateur actif.
       const response = await getCurrentUser();
       setUser(response.data);
-      scheduleExpirationTimer(token);
       return response.data;
     } catch (error: any) {
+      // Si la requête échoue définitivement après tentative de refresh
       if (error?.response?.status === 401) {
-        handleSessionExpired();
+        if (typeof localStorage !== "undefined") {
+          localStorage.removeItem("access_token");
+        }
+        setUser(null);
       } else {
         setUser(null);
       }
@@ -126,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setLoading(false);
     }
-  }, [clearExpirationTimer, handleSessionExpired, scheduleExpirationTimer]);
+  }, []);
 
   useEffect(() => {
     // Ne pas vérifier la session lors du callback OAuth avant que le token ne soit enregistré
@@ -138,11 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     refreshUser().catch(() => {
       // Ignorer l'erreur au chargement initial
     });
-
-    return () => {
-      clearExpirationTimer();
-    };
-  }, [refreshUser, clearExpirationTimer]);
+  }, [refreshUser]);
 
   return (
     <AuthContext.Provider
