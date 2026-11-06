@@ -15,6 +15,8 @@ import {
   getDashboardOverview,
   getDashboardSales,
   getWeeklySales,
+  getOrdersDistribution,
+  getTopSellingProducts,
   listCommandes,
   listMyCommandes
 } from '../../../services';
@@ -22,6 +24,9 @@ import type {
   DashboardOverviewResponse,
   DashboardSalesResponse,
   WeeklySalesResponse,
+  OrdersDistributionResponse,
+  TopProductsResponse,
+  DistributionType,
   OverviewPeriod,
   OverviewMetric
 } from '../../../types/dashboard';
@@ -29,6 +34,9 @@ import type { CommandeResponse } from '../../../types/commande';
 import { AccessDenied } from '../../../components/AccessDenied';
 import { OrdersTable } from '../../../components/OrdersTable';
 import { SalesOverview } from '../../../components/SalesOverview';
+import { RevenueWeekly } from '../../../components/RevenueWeekly';
+import { OrderDistribution } from '../../../components/OrderDistribution';
+import { TopSellingProducts } from '../../../components/TopSellingProducts';
 import { cn } from '../../../utils/cn';
 
 interface OverviewViewProps {
@@ -160,6 +168,16 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
   const [salesData, setSalesData] = useState<DashboardSalesResponse | WeeklySalesResponse | null>(null);
   const [loadingSales, setLoadingSales] = useState<boolean>(true);
 
+  const [weeklySalesData, setWeeklySalesData] = useState<WeeklySalesResponse | null>(null);
+  const [loadingWeeklySales, setLoadingWeeklySales] = useState<boolean>(true);
+
+  const [distributionType, setDistributionType] = useState<DistributionType>('category');
+  const [distributionData, setDistributionData] = useState<OrdersDistributionResponse | null>(null);
+  const [loadingDistribution, setLoadingDistribution] = useState<boolean>(true);
+
+  const [topProductsData, setTopProductsData] = useState<TopProductsResponse | null>(null);
+  const [loadingTopProducts, setLoadingTopProducts] = useState<boolean>(true);
+
   const [error, setError] = useState<string | null>(null);
   const [isDenied, setIsDenied] = useState<boolean>(false);
 
@@ -169,6 +187,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
   const fetchDashboardData = async (selectedPeriod: OverviewPeriod) => {
     setLoadingOverview(true);
     setLoadingSales(true);
+    setLoadingDistribution(true);
+    setLoadingTopProducts(true);
     setError(null);
     setIsDenied(false);
 
@@ -176,14 +196,22 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
       const isWeekly = selectedPeriod === 'weekly';
       const overviewPeriodParam = isWeekly ? '7d' : selectedPeriod;
 
-      const [overviewRes, salesRes] = await Promise.all([
+      const [overviewRes, salesRes, distributionRes, topProductsRes] = await Promise.all([
         getDashboardOverview(overviewPeriodParam),
-        (isWeekly ? getWeeklySales() : getDashboardSales(selectedPeriod)).catch(() => ({ data: null }))
+        (isWeekly ? getWeeklySales() : getDashboardSales(selectedPeriod)).catch(() => ({ data: null })),
+        getOrdersDistribution(overviewPeriodParam, distributionType).catch(() => ({ data: null })),
+        getTopSellingProducts(overviewPeriodParam, 5).catch(() => ({ data: null }))
       ]);
 
       setOverviewData(overviewRes.data);
       if (salesRes.data) {
         setSalesData(salesRes.data);
+      }
+      if (distributionRes.data) {
+        setDistributionData(distributionRes.data);
+      }
+      if (topProductsRes.data) {
+        setTopProductsData(topProductsRes.data);
       }
     } catch (err: any) {
       if (err.response?.status === 403) {
@@ -198,6 +226,39 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
     } finally {
       setLoadingOverview(false);
       setLoadingSales(false);
+      setLoadingDistribution(false);
+      setLoadingTopProducts(false);
+    }
+  };
+
+  const handleDistributionTypeChange = async (newType: DistributionType) => {
+    setDistributionType(newType);
+    setLoadingDistribution(true);
+    try {
+      const isWeekly = period === 'weekly';
+      const overviewPeriodParam = isWeekly ? '7d' : period;
+      const res = await getOrdersDistribution(overviewPeriodParam, newType);
+      if (res.data) {
+        setDistributionData(res.data);
+      }
+    } catch {
+      // Keep previous data on error
+    } finally {
+      setLoadingDistribution(false);
+    }
+  };
+
+  const fetchWeeklySalesData = async () => {
+    setLoadingWeeklySales(true);
+    try {
+      const res = await getWeeklySales();
+      if (res.data) {
+        setWeeklySalesData(res.data);
+      }
+    } catch {
+      setWeeklySalesData(null);
+    } finally {
+      setLoadingWeeklySales(false);
     }
   };
 
@@ -227,6 +288,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
   }, [period]);
 
   useEffect(() => {
+    fetchWeeklySalesData();
     fetchRecentOrders();
   }, []);
 
@@ -348,12 +410,35 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onSeeAllOrders }) =>
         </div>
       ) : null}
 
-      {/* Sales Evolution Chart Row */}
-      <motion.div variants={itemVariants}>
-        <SalesOverview
-          data={salesData?.data}
-          currency={salesData?.currency || overviewData?.currency}
-          loading={loadingSales}
+      {/* Sales Evolution + Order Distribution Grid Row (Matches Capture 145030.png) */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        <div className="lg:col-span-2">
+          <SalesOverview
+            data={salesData?.data}
+            currency={salesData?.currency || overviewData?.currency}
+            loading={loadingSales}
+          />
+        </div>
+        <div className="lg:col-span-1">
+          <OrderDistribution
+            data={distributionData}
+            distributionType={distributionType}
+            onTypeChange={handleDistributionTypeChange}
+            loading={loadingDistribution}
+          />
+        </div>
+      </motion.div>
+
+      {/* Weekly Revenue + Top Selling Products Grid Row (Matches Capture 145049.png) */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <RevenueWeekly
+          data={weeklySalesData?.data}
+          currency={weeklySalesData?.currency || overviewData?.currency}
+          loading={loadingWeeklySales}
+        />
+        <TopSellingProducts
+          data={topProductsData}
+          loading={loadingTopProducts}
         />
       </motion.div>
 

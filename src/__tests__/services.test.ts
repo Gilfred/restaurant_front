@@ -37,7 +37,9 @@ import {
   listCasiers,
   getWeeklySales,
   getDashboardOverview,
-  getDashboardSales
+  getDashboardSales,
+  getOrdersDistribution,
+  getTopSellingProducts
 } from "../services";
 
 function assertEqual(actual: unknown, expected: unknown, message: string) {
@@ -50,23 +52,23 @@ function assertEqual(actual: unknown, expected: unknown, message: string) {
 
 async function runTests() {
   console.log("Starting endpoint consumption tests...");
-  let lastCall = { method: "", url: "", data: null as unknown };
+  let lastCall = { method: "", url: "", data: null as unknown, params: null as any };
 
   // Mock api methods
-  api.get = (url: string) => {
-    lastCall = { method: "GET", url, data: null };
+  api.get = (url: string, config?: any) => {
+    lastCall = { method: "GET", url, data: null, params: config?.params };
     return Promise.resolve({ data: [] }) as any;
   };
   api.post = (url: string, data?: any) => {
-    lastCall = { method: "POST", url, data };
+    lastCall = { method: "POST", url, data, params: undefined };
     return Promise.resolve({ data: {} }) as any;
   };
   api.patch = (url: string, data?: any) => {
-    lastCall = { method: "PATCH", url, data };
+    lastCall = { method: "PATCH", url, data, params: undefined };
     return Promise.resolve({ data: {} }) as any;
   };
   api.delete = (url: string) => {
-    lastCall = { method: "DELETE", url, data: null };
+    lastCall = { method: "DELETE", url, data: null, params: undefined };
     return Promise.resolve({ data: {} }) as any;
   };
 
@@ -405,6 +407,18 @@ async function runTests() {
   assertEqual(lastCall.method, "GET", "getWeeklySales method");
   assertEqual(lastCall.url, "/dashboard/sales/weekly", "getWeeklySales url");
   console.log("✓ GET /dashboard/sales/weekly");
+
+  await getOrdersDistribution("7d", "category");
+  assertEqual(lastCall.method, "GET", "getOrdersDistribution method");
+  assertEqual(lastCall.url, "/dashboard/orders/distribution", "getOrdersDistribution url");
+  assertEqual(lastCall.params?.type, "category", "getOrdersDistribution type param");
+  console.log("✓ GET /dashboard/orders/distribution");
+
+  await getTopSellingProducts("7d", 5);
+  assertEqual(lastCall.method, "GET", "getTopSellingProducts method");
+  assertEqual(lastCall.url, "/dashboard/products/top-selling", "getTopSellingProducts url");
+  assertEqual(lastCall.params?.limit, 5, "getTopSellingProducts limit param");
+  console.log("✓ GET /dashboard/products/top-selling");
 
   console.log("All endpoint consumption tests passed successfully!");
 }

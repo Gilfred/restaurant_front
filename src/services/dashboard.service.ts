@@ -2,7 +2,10 @@ import { api } from "../api/axios";
 import type {
   DashboardOverviewResponse,
   DashboardSalesResponse,
+  DistributionType,
+  OrdersDistributionResponse,
   OverviewPeriod,
+  TopProductsResponse,
   WeeklySalesResponse,
 } from "../types/dashboard";
 
@@ -14,6 +17,36 @@ import type {
 export const getDashboardOverview = (period: OverviewPeriod = "7d") => {
   return api.get<DashboardOverviewResponse>("/dashboard/overview", {
     params: { period },
+  });
+};
+
+/**
+ * Get Orders Distribution (by status or category/type).
+ * GET /dashboard/orders/distribution?period={period}&type={type}
+ * Restricted to ADMIN, SUPERADMIN, RESTAURANT_OWNER.
+ */
+export const getOrdersDistribution = (
+  period: OverviewPeriod | string = "7d",
+  type: DistributionType = "category"
+) => {
+  const queryPeriod = period === "weekly" ? "7d" : period;
+  return api.get<OrdersDistributionResponse>("/dashboard/orders/distribution", {
+    params: { period: queryPeriod, type },
+  });
+};
+
+/**
+ * Get Top Selling Products.
+ * GET /dashboard/products/top-selling?period={period}&limit={limit}
+ * Restricted to ADMIN, SUPERADMIN, RESTAURANT_OWNER.
+ */
+export const getTopSellingProducts = (
+  period: OverviewPeriod | string = "7d",
+  limit: number = 10
+) => {
+  const queryPeriod = period === "weekly" ? "7d" : period;
+  return api.get<TopProductsResponse>("/dashboard/products/top-selling", {
+    params: { period: queryPeriod, limit },
   });
 };
 

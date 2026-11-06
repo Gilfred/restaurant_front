@@ -50,3 +50,48 @@ export interface WeeklySalesResponse {
   end_date: string;
   data: WeeklySalesPoint[];
 }
+
+export type DistributionType = 'status' | 'category';
+
+export interface StatusDistributionItem {
+  statut: string;
+  label: string;
+  count: number;
+  percentage: number;
+  total_amount: number;
+}
+
+export interface CategoryDistributionItem {
+  id?: string;
+  name: string;
+  type?: string;
+  quantity: number;
+  revenue: number;
+  percentage: number;
+}
+
+export interface OrdersDistributionResponse {
+  period: string;
+  currency: string;
+  type: DistributionType | string;
+  total_orders: number;
+  total_revenue: number;
+  status_distribution?: StatusDistributionItem[];
+  category_distribution?: CategoryDistributionItem[];
+}
+
+export interface TopProductItem {
+  product_id?: string;
+  name: string;
+  type?: string;
+  quantity: number;
+  revenue: number;
+  percentage: number;
+}
+
+export interface TopProductsResponse {
+  period: string;
+  currency: string;
+  total_quantity: number;
+  data: TopProductItem[];
+}
